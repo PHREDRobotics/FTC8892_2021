@@ -119,13 +119,13 @@ public class MainTeleOp extends OpMode {
         double turn = -gamepad1.right_stick_x;
 
         // - This uses basic math to combine motions and is easier to drive straight.
-        leftFrontPower = (drive + turn + strafe, -1.0, 1.0);
+        leftFrontPower = (drive + turn + strafe);
         rightFrontPower = (-drive + turn + strafe);
         leftRearPower = (-drive + -turn + strafe);
         rightRearPower = (drive + -turn + strafe);
 
         // State Machine
-        liftEncoder = robot.LiftMotor.getCurrentPosition();
+        liftEncoder = robot.liftMotor.getCurrentPosition();
 
         // State Machine Actions: Grab, LiftUp, Drop, LiftDown, Shoot
         if(gamepad2.left_bumper = true) {
@@ -134,7 +134,6 @@ public class MainTeleOp extends OpMode {
 
         // Show the elapsed game time and wheel power.
         telemetry.addData("Status", "Run Time: " + runtime.toString());
-        telemetry.addData("Tilt Action", (tiltIsMoving ? "Moving" : "Stationary") );
         telemetry.addData("Front Motors", "left (%.2f), right (%.2f)", leftFrontPower, rightFrontPower);
         telemetry.addData("Lift Encoder", liftEncoder);
         telemetry.update();
@@ -150,8 +149,8 @@ public class MainTeleOp extends OpMode {
         robot.rightFrontDrive.setPower(0);
         robot.leftRearDrive.setPower(0);
         robot.rightRearDrive.setPower(0);
-        robot.shooterMoterFront.setPower(0);
-        robot.shooterMoterBack.setPower(0);
+        robot.frontShooterMotor.setPower(0);
+        robot.backShooterMotor.setPower(0);
         robot.liftMotor.setPower(0);
 
     }

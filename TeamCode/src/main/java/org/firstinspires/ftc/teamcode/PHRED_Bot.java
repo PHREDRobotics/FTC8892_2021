@@ -196,24 +196,16 @@ public class PHRED_Bot
     /* Object Manipulation Functions */
 
     public void tiltToPosition(int tiltTarget){
-        tilterMotor.setTargetPosition(tiltTarget);
-        tilterMotor.setPower(.3);
-        tilterMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        while (tilterMotor.isBusy()){
+        liftMotor.setTargetPosition(tiltTarget);
+        liftMotor.setPower(.3);
+        liftMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        while (liftMotor.isBusy()){
             
         }
-        tilterMotor.setPower(0);
+        liftMotor.setPower(0);
     }
     
-    public void winchToPosition(int winchTarget){
-        winchyMotor.setTargetPosition(winchTarget);
-        winchyMotor.setPower(.3);
-        winchyMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        while (winchyMotor.isBusy()){
-            
-        }
-        winchyMotor.setPower(0);
-    }
+
 
 }
 
