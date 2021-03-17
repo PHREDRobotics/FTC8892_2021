@@ -53,26 +53,32 @@ import org.firstinspires.ftc.teamcode.PHRED_Bot;
 
 @TeleOp(name = "TeleOp: Iterative OpMode", group = "Iterative Opmode")
 
-public class TeleOpMode extends OpMode {
+public class MainTeleOp extends OpMode {
+
+    // Declare Constants
+
+    // Declare OpMode members
 
     PHRED_Bot robot = new PHRED_Bot();
-    // Declare OpMode members.;
-    private int TILT_TOO_MUCH = 419;
-    private int TILT_TOO_LITTLE = -58;
-    private int WINCH_TOO_LITTLE = -1800;
-    private int WINCH_TOO_MUCH = 580;
-    private double SERVO_OPEN = 1.8;
-    private double SERVO_CLOSED = .45;
-    private ElapsedTime runtime = new ElapsedTime();
 
-    private boolean dpadUpReleased = true;
-    private boolean dpadDownReleased = true;
-    private boolean tiltIsMoving = false;
+    private ElapsedTime runtime = new ElapsedTime();
 
     private double rightFrontPower = 0.0;
     private double rightRearPower = 0.0;
     private double leftFrontPower = 0.0;
     private double leftRearPower = 0.0;
+
+    private enum State {
+        DRIVE,
+        DROP_LIFT,
+        GRIP,
+        RAISE_LIFT,
+        DROP_RING,
+        FLIPPER,
+        SHOOT
+    }
+
+    private State currentState = State.DRIVE;
 
     @Override
     public void init() {
@@ -88,8 +94,7 @@ public class TeleOpMode extends OpMode {
      */
     @Override
     public void init_loop() {
-        robot.tilterMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        robot.winchyMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+         robot.liftMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
     }
 
     /*
@@ -98,8 +103,7 @@ public class TeleOpMode extends OpMode {
     @Override
     public void start() {
         runtime.reset();
-        robot.tilterMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        robot.winchyMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        robot.liftMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
     }
 
     /*
@@ -107,115 +111,32 @@ public class TeleOpMode extends OpMode {
      */
     @Override
     public void loop() {
-        int encoderT;
-        int encoderW;
+        int liftEncoder;
 
         // Mechanum Mode use Left Stick for motion and Right Stick to rotate
         double drive = gamepad1.left_stick_y;
         double strafe = -gamepad1.left_stick_x;
         double turn = -gamepad1.right_stick_x;
-        double winch = gamepad2.left_stick_y;
-        //     double tilt = gamepad2.right_stick_y;
-        // Calculate individual wheel power
-        // to keep us from knocking the tower
-
-        robot.tilterMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        robot.winchyMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
         // - This uses basic math to combine motions and is easier to drive straight.
-        leftFrontPower = (drive + turn + strafe);
+        leftFrontPower = (drive + turn + strafe, -1.0, 1.0);
         rightFrontPower = (-drive + turn + strafe);
         leftRearPower = (-drive + -turn + strafe);
         rightRearPower = (drive + -turn + strafe);
-        // Send calculated power to wheels
-        telemetry.addData("unlimited_power:", leftFrontPower);
-        telemetry.addData("unlimited_power2:", drive);
-        telemetry.addData("unlimited_power3:", gamepad1.a);
-        if (gamepad1.a) {
-            /*leftFrontDrive.setPower(leftFrontPower*0.5);  
-            rightFrontDrive.setPower(rightFrontPower*0.5);
-            leftRearDrive.setPower(leftRearPower*0.5);
-            rightRearDrive.setPower(rightRearPower*0.5);
-            telemetry.addData("orca", leftFrontDrive.getPower());
-        */
-            robot.leftFrontDrive.setPower(-.25);
-            robot.rightFrontDrive.setPower(-.25);
-            robot.leftRearDrive.setPower(.25);
-            robot.rightRearDrive.setPower(.25);
-        } else {
-            robot.leftFrontDrive.setPower(leftFrontPower);
-            robot.rightFrontDrive.setPower(rightFrontPower);
-            robot.leftRearDrive.setPower(leftRearPower);
-            robot.rightRearDrive.setPower(rightRearPower);
-        }
-        //OM stuff
-        robot.winchyMotor.setPower(-winch * .5);
-        encoderT = robot.tilterMotor.getCurrentPosition();
-        encoderW = robot.winchyMotor.getCurrentPosition();
-/*
-        if (encoderW > WINCH_TOO_MUCH) {
-            winchyMotor.setPower(1);
 
-        } else {
-            if (encoderW < WINCH_TOO_LITTLE) {
-                winchyMotor.setPower(-1);
+        // State Machine
+        liftEncoder = robot.LiftMotor.getCurrentPosition();
 
-            } else {
-                winchyMotor.setPower(-winch * .5);
-            }
+        // State Machine Actions: Grab, LiftUp, Drop, LiftDown, Shoot
+        if(gamepad2.left_bumper = true) {
+            currentState = State.DROP_LIFT;
         }
- */
-           /*
-           if (encoderT < 0){
-            winchyMotor.setPower(0);
-                    }
-
-        if (encoderT > TILT_TOO_MUCH) {
-            tilterMotor.setPower(-1);
-        } else {
-            if (encoderT < TILT_TOO_LITTLE) {
-                tilterMotor.setPower(1);
-            } else {
-                tilterMotor.setPower(-tilt * .5);
-            }
-        }
-        */
-        // DPad Up -> Start Tilting Lift up
-        if (gamepad2.dpad_up && dpadUpReleased && !tiltIsMoving) {
-            dpadUpReleased = false;
-            robot.tilterMotor.setTargetPosition(TILT_TOO_MUCH);
-            robot.tilterMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-            robot.tilterMotor.setPower(.3);
-            tiltIsMoving = true;
-        } else {
-            dpadUpReleased = true;
-        }
-
-        // DPad Down -> Start Tilting Lift Back
-        if (gamepad2.dpad_down && dpadDownReleased) {
-            dpadDownReleased = false;
-            robot.tilterMotor.setTargetPosition(TILT_TOO_LITTLE);
-            robot.tilterMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-            robot.tilterMotor.setPower(-.3);
-            tiltIsMoving = true;
-        } else {
-            dpadDownReleased = true;
-        }
-
-        // Tilting action done? -> stop the Tilt Motor
-        if (!robot.tilterMotor.isBusy() && tiltIsMoving) {
-            robot.tilterMotor.setPower(0);
-            robot.tilterMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-            tiltIsMoving = false;
-        }
-
 
         // Show the elapsed game time and wheel power.
         telemetry.addData("Status", "Run Time: " + runtime.toString());
-        telemetry.addData("Tilt Action", (tiltIsMoving ? "Moving" : "Stationary") )
+        telemetry.addData("Tilt Action", (tiltIsMoving ? "Moving" : "Stationary") );
         telemetry.addData("Front Motors", "left (%.2f), right (%.2f)", leftFrontPower, rightFrontPower);
-        telemetry.addData("EncoderT", encoderT);
-        telemetry.addData("EncoderW", encoderW);
+        telemetry.addData("Lift Encoder", liftEncoder);
         telemetry.update();
     }
 
@@ -229,8 +150,9 @@ public class TeleOpMode extends OpMode {
         robot.rightFrontDrive.setPower(0);
         robot.leftRearDrive.setPower(0);
         robot.rightRearDrive.setPower(0);
-        robot.winchyMotor.setPower(0);
-        robot.tilterMotor.setPower(0);
+        robot.shooterMoterFront.setPower(0);
+        robot.shooterMoterBack.setPower(0);
+        robot.liftMotor.setPower(0);
 
     }
 

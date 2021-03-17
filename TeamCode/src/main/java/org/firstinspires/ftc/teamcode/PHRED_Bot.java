@@ -68,9 +68,11 @@ public class PHRED_Bot
     public DcMotor leftRearDrive = null;
     public DcMotor rightFrontDrive = null;
     public DcMotor rightRearDrive = null;
-    public DcMotor tilterMotor = null;
-    public DcMotor winchyMotor = null;
-    private Servo graberServo = null;
+    public DcMotor liftMotor = null;
+    public DcMotor frontShooterMotor = null;
+    public DcMotor backShooterMotor = null;
+    public Servo gripperServo = null;
+    public Servo flipperServo = null;
 
     // Sensors --------------------------
     public ModernRoboticsI2cRangeSensor frontRange = null;
@@ -99,9 +101,12 @@ public class PHRED_Bot
         rightRearDrive = hwMap.get(DcMotor.class, "right_rear_motor");
         leftFrontDrive = hwMap.get(DcMotor.class, "left_front_motor");
         leftRearDrive = hwMap.get(DcMotor.class, "left_rear_motor");
-        winchyMotor = hwMap.get(DcMotor.class, "winch_motor");
-        tilterMotor = hwMap.get(DcMotor.class, "tilt_motor");
-        graberServo = hwMap.get(Servo.class, "grab_servo");
+        liftMotor = hwMap.get(DcMotor.class, "lift_motor");
+        frontShooterMotor = hwMap.get(DcMotor.class, "front_shooter_motor");
+        backShooterMotor = hwMap.get(DcMotor.class, "back_shooter_motor");
+
+        flipperServo = hwMap.get(Servo.class, "flipper_servo");
+        gripperServo = hwMap.get(Servo.class, "gripper_servo");
 
         // Set motor direction
         rightFrontDrive.setDirection(DcMotor.Direction.FORWARD);
