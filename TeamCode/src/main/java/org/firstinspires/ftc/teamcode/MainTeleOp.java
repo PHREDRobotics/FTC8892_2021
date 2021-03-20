@@ -68,6 +68,10 @@ public class MainTeleOp extends OpMode {
     private double leftFrontPower = 0.0;
     private double leftRearPower = 0.0;
 
+    // Debounce variables
+    private boolean leftBumperPressed = false;
+    private boolean rightBumperPressed = false;
+
     private enum State {
         DRIVE,
         DROP_LIFT,
@@ -118,6 +122,8 @@ public class MainTeleOp extends OpMode {
         double strafe = -gamepad1.left_stick_x;
         double turn = -gamepad1.right_stick_x;
 
+
+
         // - This uses basic math to combine motions and is easier to drive straight.
         leftFrontPower = (drive + turn + strafe);
         rightFrontPower = (-drive + turn + strafe);
@@ -128,9 +134,29 @@ public class MainTeleOp extends OpMode {
         liftEncoder = robot.liftMotor.getCurrentPosition();
 
         // State Machine Actions: Grab, LiftUp, Drop, LiftDown, Shoot
-        if(gamepad2.left_bumper = true) {
-            currentState = State.DROP_LIFT;
+
+        if(gamepad2.left_bumper != leftBumperPressed ) {
+            if ( gamepad2.left_bumper  ) {
+               // Flag trigger
+               leftBumperPressed = true;
+            } else {
+                leftBumperPressed = false;
+            }
         }
+
+        if ( isStopped(drive, turn, strafe) {
+            if (gamepad2.right_bumper != rightBumperPressed) {
+                if (gamepad2.right_bumper) {
+                    // Shoot a ring
+                    shootARing();
+                    rightBumperPressed = true;
+                } else {
+                    rightBumperPressed = false;
+                }
+            }
+        }
+
+        // State Machine
 
         // Show the elapsed game time and wheel power.
         telemetry.addData("Status", "Run Time: " + runtime.toString());
@@ -155,5 +181,38 @@ public class MainTeleOp extends OpMode {
 
     }
 
+    void shootARing() {
+        // Turn Motors on
+        robot.backShooterMotor.setPower(1.0);
+        robot.frontShooterMotor.setPower((1.0);
+
+        // set a timer
+        private ElapsedTime shootCycle = new ElapsedTime();
+
+        // start the servo
+        robot.flipperServo.setPosition( robot.FLIPPER_FORWARD );
+
+        // wait for the servo
+        while ( robot.flipperServo.getPosition() < robot.FLIPPER_FORWARD) {}
+
+        //pull the servo back
+        robot.flipperServo.setPosition( robot.FLIPPER_BACK );
+
+       //wait for the servo
+        while (robot.flipperServo.getPosition() > robot.FLIPPER_BACK) {}
+
+        // wait for the timer
+       while ( shootCycle.milliseconds() < 1000 )  { }
+
+        // return control
+
+    }
+
+    boolean isStopped(double drive, double turn, double strafe) {
+        if (drive == 0 && turn == 0 && strafe == 0) {
+            return true;
+        } else {
+            return false;
+        }}
 
 }

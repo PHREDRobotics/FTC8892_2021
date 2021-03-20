@@ -62,6 +62,11 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 public class PHRED_Bot
 {
     /* Public members. */
+    //CONSTANTS --------------
+    public double FLIPPER_FORWARD = 1.0;
+    public double FLIPPER_BACK = 0.5;
+
+
 
     // Motors ---------------------------
     public DcMotor leftFrontDrive = null;
