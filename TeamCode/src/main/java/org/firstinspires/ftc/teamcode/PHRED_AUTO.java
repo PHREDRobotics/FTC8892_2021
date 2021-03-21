@@ -34,6 +34,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.I2cAddr;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
@@ -69,29 +70,38 @@ public class PHRED_AUTO extends LinearOpMode {
     private Servo bolt = null;
     //OM motors
     private DcMotor tilter = null;
-    private Servo grabber = null;
+    private Servo graber = null;
     // Sensors
     public ModernRoboticsI2cRangeSensor frontRange = null;
     public ModernRoboticsI2cRangeSensor rightRange = null;
     public ModernRoboticsI2cRangeSensor leftRange = null;
-
+    //Gyro
+    //camera
     @Override
     public void runOpMode() {
         telemetry.addData("Status", "Initialized");
         telemetry.update();
-
-        // Initialize the hardware variables. Note that the strings used here as parameters
-        // to 'get' must correspond to the names assigned during the robot configuration
-        // step (using the FTC Robot Controller app on the phone).
+        // hardware maps
+        //drive motors
         frontLeftDrive  = hardwareMap.get(DcMotor.class, "front_left_drive");
         frontRightDrive = hardwareMap.get(DcMotor.class, "front_right_drive");
         backLeftDrive  = hardwareMap.get(DcMotor.class, "back_left_drive");
         backRightDrive = hardwareMap.get(DcMotor.class, "back_right_drive");
+        //shooter motors
+        frontShooter = hardwareMap.get(DcMotor.class, "front_shooter");
+        backRightDrive = hardwareMap.get(DcMotor.class, "back_shooter");
+        bolt = hardwareMap.get(Servo.class, "bolt_servo");
+        //OM motors
+        tilter = hardwareMap.get(DcMotor.class, "front_left_drive");
+        graber = hardwareMap.get(Servo.class, "grab_servo");
+        // Sensors
+        frontRange = hardwareMap.get(ModernRoboticsI2cRangeSensor.class, "front_range_sensor");
+        frontRange.setI2cAddress(I2cAddr.create8bit(0x3a));
+        rightRange = hardwareMap.get(ModernRoboticsI2cRangeSensor.class, "right_range_sensor");
+        rightRange.setI2cAddress(I2cAddr.create8bit(0x3c));
+        leftRange = hardwareMap.get(ModernRoboticsI2cRangeSensor.class, "left_range_sensor");
+        leftRange.setI2cAddress(I2cAddr.create8bit(0x3e));
 
-        // Most robots need the motor on one side to be reversed to drive forward
-        // Reverse the motor that runs backwards when connected directly to the battery
-        leftDrive.setDirection(DcMotor.Direction.FORWARD);
-        rightDrive.setDirection(DcMotor.Direction.REVERSE);
 
         // Wait for the game to start (driver presses PLAY)
         waitForStart();
@@ -100,33 +110,6 @@ public class PHRED_AUTO extends LinearOpMode {
         // run until the end of the match (driver presses STOP)
         while (opModeIsActive()) {
 
-            // Setup a variable for each drive wheel to save power level for telemetry
-            double leftPower;
-            double rightPower;
-
-            // Choose to drive using either Tank Mode, or POV Mode
-            // Comment out the method that's not used.  The default below is POV.
-
-            // POV Mode uses left stick to go forward, and right stick to turn.
-            // - This uses basic math to combine motions and is easier to drive straight.
-            double drive = -gamepad1.left_stick_y;
-            double turn  =  gamepad1.right_stick_x;
-            leftPower    = Range.clip(drive + turn, -1.0, 1.0) ;
-            rightPower   = Range.clip(drive - turn, -1.0, 1.0) ;
-
-            // Tank Mode uses one stick to control each wheel.
-            // - This requires no math, but it is hard to drive forward slowly and keep straight.
-            // leftPower  = -gamepad1.left_stick_y ;
-            // rightPower = -gamepad1.right_stick_y ;
-
-            // Send calculated power to wheels
-            leftDrive.setPower(leftPower);
-            rightDrive.setPower(rightPower);
-
-            // Show the elapsed game time and wheel power.
-            telemetry.addData("Status", "Run Time: " + runtime.toString());
-            telemetry.addData("Motors", "left (%.2f), right (%.2f)", leftPower, rightPower);
-            telemetry.update();
         }
     }
 }
