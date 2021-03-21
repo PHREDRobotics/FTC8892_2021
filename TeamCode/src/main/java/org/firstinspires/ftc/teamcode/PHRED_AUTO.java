@@ -34,6 +34,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.I2cAddr;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -101,7 +102,14 @@ public class PHRED_AUTO extends LinearOpMode {
         rightRange.setI2cAddress(I2cAddr.create8bit(0x3c));
         leftRange = hardwareMap.get(ModernRoboticsI2cRangeSensor.class, "left_range_sensor");
         leftRange.setI2cAddress(I2cAddr.create8bit(0x3e));
+        //gyro
+        //camera
 
+        telemetry.addData("Map:","complete");
+
+        //
+        backLeftDrive.setDirection(DcMotor.Direction.REVERSE);
+        backRightDrive.setDirection(DcMotor.Direction.REVERSE);
 
         // Wait for the game to start (driver presses PLAY)
         waitForStart();
@@ -111,5 +119,16 @@ public class PHRED_AUTO extends LinearOpMode {
         while (opModeIsActive()) {
 
         }
+    }
+    public void siteA() {
+        while ()
+    }
+
+    public void siteB() {
+        //code to drive to site a
+    }
+
+    public void siteC() {
+        //code to drive to site a
     }
 }
