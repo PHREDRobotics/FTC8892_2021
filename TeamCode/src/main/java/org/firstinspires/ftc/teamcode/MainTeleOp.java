@@ -198,27 +198,31 @@ public class MainTeleOp extends OpMode {
         robot.flipperServo.setPosition( robot.FLIPPER_FORWARD );
 
         // wait for the servo
-        while ( robot.flipperServo.getPosition() < robot.FLIPPER_FORWARD) {}
+        while ( robot.flipperServo.getPosition() < robot.FLIPPER_FORWARD) {
+            // insert thumb twiddle
+
+        }
 
         //pull the servo back
         robot.flipperServo.setPosition( robot.FLIPPER_BACK );
 
        //wait for the servo
-        while (robot.flipperServo.getPosition() > robot.FLIPPER_BACK) {}
+        while (robot.flipperServo.getPosition() > robot.FLIPPER_BACK) {
+            // insert thumb twiddle
+
+        }
 
         // wait for the timer
-        while ( shootCycle.milliseconds() < 1000 )  { }
+        while ( shootCycle.milliseconds() < 1000 )  {
+            // insert thumb twiddle
+        }
 
         // return control
 
     }
 
     boolean isStopped(double drive, double turn, double strafe) {
-        if (drive == 0 && turn == 0 && strafe == 0) {
-            return true;
-        } else {
-            return false;
-        }
+        return drive == 0 && turn == 0 && strafe == 0;
     }
 
     double clipPower(double inputPower) {
