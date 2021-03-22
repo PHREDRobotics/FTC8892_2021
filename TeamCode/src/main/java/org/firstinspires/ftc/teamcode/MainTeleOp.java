@@ -62,6 +62,7 @@ public class MainTeleOp extends OpMode {
     PHRED_Bot robot = new PHRED_Bot();
 
     private ElapsedTime runtime = new ElapsedTime();
+    private ElapsedTime shootCycle = new ElapsedTime();
 
     private double rightFrontPower = 0.0;
     private double rightRearPower = 0.0;
@@ -122,13 +123,17 @@ public class MainTeleOp extends OpMode {
         double strafe = -gamepad1.left_stick_x;
         double turn = -gamepad1.right_stick_x;
 
-
-
         // - This uses basic math to combine motions and is easier to drive straight.
-        leftFrontPower = (drive + turn + strafe);
-        rightFrontPower = (-drive + turn + strafe);
-        leftRearPower = (-drive + -turn + strafe);
-        rightRearPower = (drive + -turn + strafe);
+        leftFrontPower = clipPower(drive + turn + strafe);
+        rightFrontPower = clipPower(-drive + turn + strafe);
+        leftRearPower = clipPower(-drive + -turn + strafe);
+        rightRearPower = clipPower(drive + -turn + strafe);
+
+        // Now Drive the Robot
+        robot.leftFrontDrive.setPower(leftFrontPower);
+        robot.rightFrontDrive.setPower(rightFrontPower);
+        robot.leftRearDrive.setPower(leftRearPower);
+        robot.rightRearDrive.setPower(rightRearPower);
 
         // State Machine
         liftEncoder = robot.liftMotor.getCurrentPosition();
@@ -144,7 +149,7 @@ public class MainTeleOp extends OpMode {
             }
         }
 
-        if ( isStopped(drive, turn, strafe) {
+        if ( isStopped(drive, turn, strafe)) {
             if (gamepad2.right_bumper != rightBumperPressed) {
                 if (gamepad2.right_bumper) {
                     // Shoot a ring
@@ -184,10 +189,10 @@ public class MainTeleOp extends OpMode {
     void shootARing() {
         // Turn Motors on
         robot.backShooterMotor.setPower(1.0);
-        robot.frontShooterMotor.setPower((1.0);
+        robot.frontShooterMotor.setPower(1.0);
 
         // set a timer
-        private ElapsedTime shootCycle = new ElapsedTime();
+        shootCycle.reset();
 
         // start the servo
         robot.flipperServo.setPosition( robot.FLIPPER_FORWARD );
@@ -202,7 +207,7 @@ public class MainTeleOp extends OpMode {
         while (robot.flipperServo.getPosition() > robot.FLIPPER_BACK) {}
 
         // wait for the timer
-       while ( shootCycle.milliseconds() < 1000 )  { }
+        while ( shootCycle.milliseconds() < 1000 )  { }
 
         // return control
 
@@ -213,6 +218,18 @@ public class MainTeleOp extends OpMode {
             return true;
         } else {
             return false;
-        }}
+        }
+    }
+
+    double clipPower(double inputPower) {
+        double outputPower = inputPower;
+        if (outputPower > 1.0) {
+            outputPower = 1.0;
+        } else if (outputPower < -1.0 ) {
+            outputPower = -1.0;
+        }
+
+        return outputPower;
+    }
 
 }
