@@ -40,6 +40,8 @@ import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+
 
 /**
  * This file contains an minimal example of a Linear "OpMode". An OpMode is a 'program' that runs in either
@@ -60,6 +62,9 @@ public class PHRED_AUTO extends LinearOpMode {
 
     // Declare OpMode members.
     private ElapsedTime runtime = new ElapsedTime();
+    private ElapsedTime fireTime = new ElapsedTime();
+
+    private int FIRE_TIME = 2000;
     //drive motors
     private DcMotor frontLeftDrive = null;
     private DcMotor frontRightDrive = null;
@@ -69,6 +74,9 @@ public class PHRED_AUTO extends LinearOpMode {
     private DcMotor frontShooter = null;
     private DcMotor backShooter = null;
     private Servo bolt = null;
+
+    private double boltOut = 1.5;
+    private double boltIn = 0;
     //OM motors
     private DcMotor tilter = null;
     private Servo graber = null;
@@ -117,18 +125,118 @@ public class PHRED_AUTO extends LinearOpMode {
 
         // run until the end of the match (driver presses STOP)
         while (opModeIsActive()) {
-
+//TODO all this stuff
+            /*Site picker to drive into either A B or C
+            siteA();
+            siteB();
+            siteC();
+            */
         }
     }
     public void siteA() {
-        while ()
+        //using the front range sensor as reference it drives until it is at target spot
+        while (frontRange.getDistance(DistanceUnit.CM) >= 152 && !isStopRequested()){
+            //keeps it no more than 30 cm from wall
+            if (rightRange.getDistance(DistanceUnit.CM) >= 30){
+                frontLeftDrive.setPower(-.5);
+                frontRightDrive.setPower(-.5);
+                backLeftDrive.setPower(.5);
+                backRightDrive.setPower(.5);
+            }
+            else {
+                frontLeftDrive.setPower(1);
+                frontRightDrive.setPower(1);
+                backLeftDrive.setPower(1);
+                backRightDrive.setPower(1);
+            }
+        }
+        //all three programs differ to returnToLine
+        returnToLine(60,60,true,1);
     }
 
     public void siteB() {
-        //code to drive to site a
+        while (frontRange.getDistance(DistanceUnit.CM) >= 92 && !isStopRequested()){
+
+            if (rightRange.getDistance(DistanceUnit.CM) >= 92){
+                frontLeftDrive.setPower(-.5);
+                frontRightDrive.setPower(-.5);
+                backLeftDrive.setPower(.5);
+                backRightDrive.setPower(.5);
+            }
+            else {
+                frontLeftDrive.setPower(1);
+                frontRightDrive.setPower(1);
+                backLeftDrive.setPower(1);
+                backRightDrive.setPower(1);
+            }
+        }
+        returnToLine(60,60,true,1);
     }
 
     public void siteC() {
-        //code to drive to site a
+        while (frontRange.getDistance(DistanceUnit.CM) >= 31 && !isStopRequested()){
+
+            if (rightRange.getDistance(DistanceUnit.CM) >= 31){
+                frontLeftDrive.setPower(-.5);
+                frontRightDrive.setPower(-.5);
+                backLeftDrive.setPower(.5);
+                backRightDrive.setPower(.5);
+            }
+            else {
+                frontLeftDrive.setPower(1);
+                frontRightDrive.setPower(1);
+                backLeftDrive.setPower(1);
+                backRightDrive.setPower(1);
+            }
+        }
+        returnToLine(60,60,true,1);
+    }
+
+    public void returnToLine(double xPOS,double yPOS,boolean firePerm,double fireSpeed){
+
+        // moves backwards towards the line
+        while(frontRange.getDistance(DistanceUnit.CM) <= yPOS && !isStopRequested()){
+            frontLeftDrive.setPower(-.5);
+            frontRightDrive.setPower(-.5);
+            backLeftDrive.setPower(-.5);
+            backRightDrive.setPower(.5);
+
+
+        }
+        //moves away from the wall to firing position
+        while(rightRange.getDistance(DistanceUnit.CM) <= xPOS && !isStopRequested()){
+            frontLeftDrive.setPower(.5);
+            frontRightDrive.setPower(.5);
+            backLeftDrive.setPower(-.5);
+            backRightDrive.setPower(-.5);
+        }
+        //resets the amount of time the bot spends shooting one disk
+        fireTime.reset();
+//TODO fix the issue or find a work around for fireTime
+        while (firePerm && fireTime != FIRE_TIME && !isStopRequested()){
+            frontShooter.setPower(fireSpeed);
+            backShooter.setPower(fireSpeed);
+        }
+        //reload
+        bolt.setPosition(boltOut);
+        sleep(300);
+        bolt.setPosition(boltIn);
+//TODO enable the bot to rotate by a certain amount to hit mot of the targets
+        //Turning
+        fireTime.reset();
+        while (firePerm && fireTime != FIRE_TIME && !isStopRequested()){
+            frontShooter.setPower(fireSpeed);
+            backShooter.setPower(fireSpeed);
+        }
+        bolt.setPosition(boltOut);
+        sleep(300);
+        bolt.setPosition(boltIn);
+//TODO enable the bot to rotate by a certain amount to hit mot of the targets
+        //Turning
+        fireTime.reset();
+        while (firePerm && fireTime != FIRE_TIME && !isStopRequested()){
+            frontShooter.setPower(fireSpeed);
+            backShooter.setPower(fireSpeed);
+        }
     }
 }
