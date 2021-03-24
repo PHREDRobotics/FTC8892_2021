@@ -27,7 +27,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.firstinspires.ftc.robotcontroller.external.samples;
+package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cRangeSensor;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -71,12 +71,12 @@ public class PHRED_AUTO extends LinearOpMode {
     private DcMotor backLeftDrive = null;
     private DcMotor backRightDrive = null;
     //shooter motors
-    private DcMotor frontShooter = null;
-    private DcMotor backShooter = null;
-    private Servo bolt = null;
+    private DcMotor frontShooterMotor = null;
+    private DcMotor backShooterMotor = null;
+    private Servo flipperServo = null;
 
-    private double boltOut = 1.5;
-    private double boltIn = 0;
+    private double FLIPPER_FORWARD = 1.5;
+    private double FLIPPER_BACK = 0;
     //OM motors
     private DcMotor tilter = null;
     private Servo graber = null;
@@ -97,9 +97,9 @@ public class PHRED_AUTO extends LinearOpMode {
         backLeftDrive  = hardwareMap.get(DcMotor.class, "back_left_drive");
         backRightDrive = hardwareMap.get(DcMotor.class, "back_right_drive");
         //shooter motors
-        frontShooter = hardwareMap.get(DcMotor.class, "front_shooter");
-        backRightDrive = hardwareMap.get(DcMotor.class, "back_shooter");
-        bolt = hardwareMap.get(Servo.class, "bolt_servo");
+        frontShooterMotor = hardwareMap.get(DcMotor.class, "front_shooter");
+        backShooterMotor = hardwareMap.get(DcMotor.class, "back_shooter");
+        flipperServo = hardwareMap.get(Servo.class, "flipper_servo");
         //OM motors
         tilter = hardwareMap.get(DcMotor.class, "front_left_drive");
         graber = hardwareMap.get(Servo.class, "grab_servo");
@@ -213,30 +213,30 @@ public class PHRED_AUTO extends LinearOpMode {
         //resets the amount of time the bot spends shooting one disk
         fireTime.reset();
 //TODO fix the issue or find a work around for fireTime
-        while (firePerm && fireTime != FIRE_TIME && !isStopRequested()){
-            frontShooter.setPower(fireSpeed);
-            backShooter.setPower(fireSpeed);
+        while (firePerm && fireTime.milliseconds() != FIRE_TIME && !isStopRequested()){
+            frontShooterMotor.setPower(fireSpeed);
+            backShooterMotor.setPower(fireSpeed);
         }
         //reload
-        bolt.setPosition(boltOut);
+        flipperServo.setPosition(FLIPPER_FORWARD);
         sleep(300);
-        bolt.setPosition(boltIn);
-//TODO enable the bot to rotate by a certain amount to hit mot of the targets
+        flipperServo.setPosition(FLIPPER_BACK);
+//TODO enable the bot to rotate by a certain amount to hit more of the targets
         //Turning
         fireTime.reset();
-        while (firePerm && fireTime != FIRE_TIME && !isStopRequested()){
-            frontShooter.setPower(fireSpeed);
-            backShooter.setPower(fireSpeed);
+        while (firePerm && fireTime.milliseconds() != FIRE_TIME && !isStopRequested()){
+            frontShooterMotor.setPower(fireSpeed);
+            backShooterMotor.setPower(fireSpeed);
         }
-        bolt.setPosition(boltOut);
+        flipperServo.setPosition(FLIPPER_FORWARD);
         sleep(300);
-        bolt.setPosition(boltIn);
-//TODO enable the bot to rotate by a certain amount to hit mot of the targets
+        flipperServo.setPosition(FLIPPER_BACK);
+//TODO enable the bot to rotate by a certain amount to hit more of the targets
         //Turning
         fireTime.reset();
-        while (firePerm && fireTime != FIRE_TIME && !isStopRequested()){
-            frontShooter.setPower(fireSpeed);
-            backShooter.setPower(fireSpeed);
+        while (firePerm && fireTime.milliseconds() != FIRE_TIME && !isStopRequested()){
+            frontShooterMotor.setPower(fireSpeed);
+            backShooterMotor.setPower(fireSpeed);
         }
     }
 }
