@@ -39,9 +39,9 @@ import com.qualcomm.robotcore.hardware.I2cAddr;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
-
+import com.qualcomm.hardware.bosch.BNO055IMU;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
-
+import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 
 /**
  * This file contains an minimal example of a Linear "OpMode". An OpMode is a 'program' that runs in either
@@ -79,12 +79,17 @@ public class PHRED_AUTO extends LinearOpMode {
     private double FLIPPER_BACK = 0;
     //OM motors
     private DcMotor tilter = null;
+    private int TILTER_DOWN = 25;
     private Servo graber = null;
     // Sensors
     public ModernRoboticsI2cRangeSensor frontRange = null;
     public ModernRoboticsI2cRangeSensor rightRange = null;
     public ModernRoboticsI2cRangeSensor leftRange = null;
     //Gyro
+    BNO055IMU imu;
+    Orientation lastAngles = new Orientation();
+    double globalAngle;
+    double correction;
     //camera
     @Override
     public void runOpMode() {
@@ -111,6 +116,13 @@ public class PHRED_AUTO extends LinearOpMode {
         leftRange = hardwareMap.get(ModernRoboticsI2cRangeSensor.class, "left_range_sensor");
         leftRange.setI2cAddress(I2cAddr.create8bit(0x3e));
         //gyro
+        imu = hardwareMap.get(BNO055IMU.class, "imu");
+        BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
+
+        parameters.mode                = BNO055IMU.SensorMode.IMU;
+        parameters.angleUnit           = BNO055IMU.AngleUnit.DEGREES;
+        parameters.accelUnit           = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
+        parameters.loggingEnabled      = false;
         //camera
 
         telemetry.addData("Map:","complete");
@@ -125,6 +137,13 @@ public class PHRED_AUTO extends LinearOpMode {
 
         // run until the end of the match (driver presses STOP)
         while (opModeIsActive()) {
+            imu.initialize(parameters);
+
+            while (!isStopRequested() && !imu.isGyroCalibrated()) {
+                sleep(50);
+
+                idle();
+            }
 //TODO all this stuff
             /*Site picker to drive into either A B or C
             siteA();
@@ -150,8 +169,8 @@ public class PHRED_AUTO extends LinearOpMode {
                 backRightDrive.setPower(1);
             }
         }
-        //all three programs differ to returnToLine
-        returnToLine(60,60,true,1);
+        //all three programs differ to turnAndDrop
+        turnAndDrop();
     }
 
     public void siteB() {
@@ -170,7 +189,7 @@ public class PHRED_AUTO extends LinearOpMode {
                 backRightDrive.setPower(1);
             }
         }
-        returnToLine(60,60,true,1);
+        turnAndDrop();
     }
 
     public void siteC() {
@@ -189,11 +208,32 @@ public class PHRED_AUTO extends LinearOpMode {
                 backRightDrive.setPower(1);
             }
         }
-        returnToLine(60,60,true,1);
+        turnAndDrop();
     }
 
+    public void turnAndDrop(){
+        while (globalAngle <= 90 && !isStopRequested()) {
+            frontLeftDrive.setPower(-.5);
+            frontRightDrive.setPower(.5);
+            backLeftDrive.setPower(-.5);
+            backRightDrive.setPower(.5);
+        }
+        tilter.setTargetPosition(TILTER_DOWN);
+        tilter.setPower(.2);
+        tilter.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        while (tilter.isBusy() && !isStopRequested()){}
+        while (globalAngle >= 0 && !isStopRequested()) {
+            frontLeftDrive.setPower(.5);
+            frontRightDrive.setPower(-.5);
+            backLeftDrive.setPower(.5);
+            backRightDrive.setPower(-.5);
+        }
+        returnToLine(60,60,true,1);
+
+    }
     public void returnToLine(double xPOS,double yPOS,boolean firePerm,double fireSpeed){
 
+        int turnAmount = 25;
         // moves backwards towards the line
         while(frontRange.getDistance(DistanceUnit.CM) <= yPOS && !isStopRequested()){
             frontLeftDrive.setPower(-.5);
@@ -212,7 +252,6 @@ public class PHRED_AUTO extends LinearOpMode {
         }
         //resets the amount of time the bot spends shooting one disk
         fireTime.reset();
-//TODO fix the issue or find a work around for fireTime
         while (firePerm && fireTime.milliseconds() != FIRE_TIME && !isStopRequested()){
             frontShooterMotor.setPower(fireSpeed);
             backShooterMotor.setPower(fireSpeed);
@@ -221,8 +260,17 @@ public class PHRED_AUTO extends LinearOpMode {
         flipperServo.setPosition(FLIPPER_FORWARD);
         sleep(300);
         flipperServo.setPosition(FLIPPER_BACK);
-//TODO enable the bot to rotate by a certain amount to hit more of the targets
-        //Turning
+
+
+        //turning
+        while (globalAngle >= turnAmount && !isStopRequested()) {
+            frontLeftDrive.setPower(.5);
+            frontRightDrive.setPower(-.5);
+            backLeftDrive.setPower(.5);
+            backRightDrive.setPower(-.5);
+        }
+        turnAmount = turnAmount + 25;
+        //second target
         fireTime.reset();
         while (firePerm && fireTime.milliseconds() != FIRE_TIME && !isStopRequested()){
             frontShooterMotor.setPower(fireSpeed);
@@ -231,8 +279,15 @@ public class PHRED_AUTO extends LinearOpMode {
         flipperServo.setPosition(FLIPPER_FORWARD);
         sleep(300);
         flipperServo.setPosition(FLIPPER_BACK);
-//TODO enable the bot to rotate by a certain amount to hit more of the targets
-        //Turning
+
+        //turning
+        while (globalAngle >= turnAmount && !isStopRequested()) {
+            frontLeftDrive.setPower(.5);
+            frontRightDrive.setPower(-.5);
+            backLeftDrive.setPower(.5);
+            backRightDrive.setPower(-.5);
+        }
+        //third target
         fireTime.reset();
         while (firePerm && fireTime.milliseconds() != FIRE_TIME && !isStopRequested()){
             frontShooterMotor.setPower(fireSpeed);
