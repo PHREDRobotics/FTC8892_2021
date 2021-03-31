@@ -30,6 +30,10 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import com.qualcomm.robotcore.util.Range;
+import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.util.Hardware;
+import org.firstinspires.ftc.robotcore.external.State;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -87,11 +91,10 @@ public class MainTeleOp extends OpMode {
 
     @Override
     public void init() {
+
+        robot.initializeRobot(hardwareMap);
+    
         telemetry.addData("Status", "Initialized");
-
-        robot.initializeRobot();
-        // Tell the driver that initialization is complete.
-
     }
 
     /*
@@ -99,7 +102,7 @@ public class MainTeleOp extends OpMode {
      */
     @Override
     public void init_loop() {
-         robot.liftMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        
     }
 
     /*
@@ -108,8 +111,7 @@ public class MainTeleOp extends OpMode {
     @Override
     public void start() {
         runtime.reset();
-        robot.liftMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-    }
+     }
 
     /*
      * Code to run REPEATEDLY after the driver hits PLAY but before they hit STOP
@@ -124,22 +126,20 @@ public class MainTeleOp extends OpMode {
         double turn = -gamepad1.right_stick_x;
 
         // - This uses basic math to combine motions and is easier to drive straight.
-        leftFrontPower = clipPower(drive + turn + strafe);
-        rightFrontPower = clipPower(-drive + turn + strafe);
-        leftRearPower = clipPower(-drive + -turn + strafe);
-        rightRearPower = clipPower(drive + -turn + strafe);
+        leftFrontPower = Range.clip(drive + turn + strafe, -1.0, 1.0);
+        rightFrontPower = Range.clip(-drive + turn + strafe, -1.0, 1.0);
+        leftRearPower = Range.clip(-drive + -turn + strafe, -1.0, 1.0);
+        rightRearPower = Range.clip(drive + -turn + strafe, -1.0, 1.0);
 
         // Now Drive the Robot
-        robot.leftFrontDrive.setPower(leftFrontPower);
-        robot.rightFrontDrive.setPower(rightFrontPower);
-        robot.leftRearDrive.setPower(leftRearPower);
-        robot.rightRearDrive.setPower(rightRearPower);
+        robot.driveRobot(rightFrontPower, leftFrontPower, rightRearPower, leftRearPower);
+        
 
         // State Machine
-        liftEncoder = robot.liftMotor.getCurrentPosition();
+     //   liftEncoder = robot.liftMotor.getCurrentPosition();
 
         // State Machine Actions: Grab, LiftUp, Drop, LiftDown, Shoot
-
+/*
         if(gamepad2.left_bumper != leftBumperPressed ) {
             if ( gamepad2.left_bumper  ) {
                // Flag trigger
@@ -162,11 +162,11 @@ public class MainTeleOp extends OpMode {
         }
 
         // State Machine
-
+*/
         // Show the elapsed game time and wheel power.
         telemetry.addData("Status", "Run Time: " + runtime.toString());
         telemetry.addData("Front Motors", "left (%.2f), right (%.2f)", leftFrontPower, rightFrontPower);
-        telemetry.addData("Lift Encoder", liftEncoder);
+//        telemetry.addData("Lift Encoder", liftEncoder);
         telemetry.update();
     }
 
@@ -176,16 +176,11 @@ public class MainTeleOp extends OpMode {
      */
     @Override
     public void stop() {
-        robot.leftFrontDrive.setPower(0);
-        robot.rightFrontDrive.setPower(0);
-        robot.leftRearDrive.setPower(0);
-        robot.rightRearDrive.setPower(0);
-        robot.frontShooterMotor.setPower(0);
-        robot.backShooterMotor.setPower(0);
-        robot.liftMotor.setPower(0);
+        robot.stopRobot();
 
     }
 
+/*
     void shootARing() {
         // Turn Motors on
         robot.backShooterMotor.setPower(1.0);
@@ -224,16 +219,7 @@ public class MainTeleOp extends OpMode {
     boolean isStopped(double drive, double turn, double strafe) {
         return drive == 0 && turn == 0 && strafe == 0;
     }
+*/
 
-    double clipPower(double inputPower) {
-        double outputPower = inputPower;
-        if (outputPower > 1.0) {
-            outputPower = 1.0;
-        } else if (outputPower < -1.0 ) {
-            outputPower = -1.0;
-        }
-
-        return outputPower;
-    }
 
 }
