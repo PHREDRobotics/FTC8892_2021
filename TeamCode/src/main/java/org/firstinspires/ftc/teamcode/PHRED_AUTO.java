@@ -40,8 +40,16 @@ import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 import com.qualcomm.hardware.bosch.BNO055IMU;
+
+import org.firstinspires.ftc.robotcore.external.ClassFactory;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
+import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
+import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
+import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
+
+import java.util.List;
 
 /**
  * This file contains an minimal example of a Linear "OpMode". An OpMode is a 'program' that runs in either
@@ -91,6 +99,15 @@ public class PHRED_AUTO extends LinearOpMode {
     double globalAngle;
     double correction;
     //camera
+    private static final String TFOD_MODEL_ASSET = "UltimateGoal.tflite";
+    private static final String LABEL_FIRST_ELEMENT = "Quad";
+    private static final String LABEL_SECOND_ELEMENT = "Single";
+
+    private static final String VUFORIA_KEY = "Ac7M0vn/////AAABmVPF98+WT0Tmowj61HNTEdAWwuxfzVemTNllfnBqmizoY+o47bat1Z7pQRR7AGHP6dSVoUKVPrv2vtr1miYGqMQs5DwgadxKlhpHvMRywSOM10XWKQjJY1dMWa4lJs7/YAvesnmdlatc6CrE9jQ4E1CQLR2pM1rmdI9Ns8RgxmgoRDq0TEPnA5bqIf3WIsnLbjKHuUN5tl4WTfSiKl9Tc1ujEK1GZj3UoNBxgTGXkpscyNUmIk2brrwu9bB+xq2CTaQ9P1bGQ4PpiaRTMElfW47Rg8uos+qdKF2THIUprzvb/gbvT6RDMmfteetOz3Vpj8qgki67/RPRzIUt+dzMe1u+MdpY0crPJ54M+aA3hnE8";
+
+    private VuforiaLocalizer vuforia;
+    private TFObjectDetector tfod;
+
     @Override
     public void runOpMode() {
         telemetry.addData("Status", "Initialized");
@@ -124,6 +141,9 @@ public class PHRED_AUTO extends LinearOpMode {
         parameters.accelUnit           = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
         parameters.loggingEnabled      = false;
         //camera
+        initVuforia();
+        initTfod();
+
 
         telemetry.addData("Map:","complete");
 
@@ -144,13 +164,45 @@ public class PHRED_AUTO extends LinearOpMode {
 
                 idle();
             }
-//TODO all this stuff
-            /*Site picker to drive into either A B or C
-            siteA();
-            siteB();
-            siteC();
-            */
+            //Site picker to drive into either A B or C
+            if (tfod != null) {
+                List<Recognition> updatedRecognitions = tfod.getUpdatedRecognitions();
+                if (updatedRecognitions != null) {
+                    for (Recognition recognition : updatedRecognitions) {
+                        if (recognition.getLabel() == LABEL_FIRST_ELEMENT){
+                            siteC();
+                        } else if (recognition.getLabel() == LABEL_SECOND_ELEMENT){
+                            siteB();
+                        } else {
+                            siteA();
+                        }
+                    }
+                }
+            }
+
         }
+    }
+    private void initVuforia() {
+        /*
+         * Configure Vuforia by creating a Parameter object, and passing it to the Vuforia engine.
+         */
+        VuforiaLocalizer.Parameters parameters = new VuforiaLocalizer.Parameters();
+
+        parameters.vuforiaLicenseKey = VUFORIA_KEY;
+        parameters.cameraName = hardwareMap.get(WebcamName.class, "Webcam 1");
+
+        //  Instantiate the Vuforia engine
+        vuforia = ClassFactory.getInstance().createVuforia(parameters);
+
+        // Loading trackables is not necessary for the TensorFlow Object Detection engine.
+    }
+    private void initTfod() {
+        int tfodMonitorViewId = hardwareMap.appContext.getResources().getIdentifier(
+                "tfodMonitorViewId", "id", hardwareMap.appContext.getPackageName());
+        TFObjectDetector.Parameters tfodParameters = new TFObjectDetector.Parameters(tfodMonitorViewId);
+        tfodParameters.minResultConfidence = 0.8f;
+        tfod = ClassFactory.getInstance().createTFObjectDetector(tfodParameters, vuforia);
+        tfod.loadModelFromAsset(TFOD_MODEL_ASSET, LABEL_FIRST_ELEMENT, LABEL_SECOND_ELEMENT);
     }
     public void siteA() {
         //using the front range sensor as reference it drives until it is at target spot
