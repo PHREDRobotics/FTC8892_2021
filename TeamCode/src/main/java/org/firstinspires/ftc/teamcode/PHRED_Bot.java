@@ -73,7 +73,7 @@ public class PHRED_Bot
     public int LIFT_BOTTOM = 0;
     public double LIFT_SPEED_MAX = 0.1;
 
-    public double SHOOTING_SPEED = 0.5;
+    public double SHOOTING_SPEED = 1.0;
 
     // Motors ---------------------------
     public DcMotor leftFrontDrive = null;
@@ -125,6 +125,7 @@ public class PHRED_Bot
         rearShooterMotor.setDirection(DcMotor.Direction.REVERSE);
         
         liftMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        liftMotor.setDirection(DcMotor.Direction.REVERSE);
         
 
         // Set Motors to zero power

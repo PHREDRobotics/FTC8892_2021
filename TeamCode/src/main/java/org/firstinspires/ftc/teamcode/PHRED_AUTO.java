@@ -30,6 +30,9 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cRangeSensor;
+import com.qualcomm.robotcore.hardware.DistanceSensor;
+import com.qualcomm.hardware.rev.Rev2mDistanceSensor;
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
@@ -39,9 +42,17 @@ import com.qualcomm.robotcore.hardware.I2cAddr;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
+import com.qualcomm.hardware.bosch.BNO055IMU;
 
+import org.firstinspires.ftc.robotcore.external.ClassFactory;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
+import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
+import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
+import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
 
+import java.util.List;
 
 /**
  * This file contains an minimal example of a Linear "OpMode". An OpMode is a 'program' that runs in either
@@ -56,8 +67,8 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
  * Remove or comment out the @Disabled line to add this opmode to the Driver Station OpMode list
  */
 
-@TeleOp(name="Basic: Linear OpMode", group="Linear Opmode")
-@Disabled
+@Autonomous(name="PHRED_Auto", group="Linear Opmode")
+
 public class PHRED_AUTO extends LinearOpMode {
 
     // Declare OpMode members.
@@ -79,39 +90,62 @@ public class PHRED_AUTO extends LinearOpMode {
     private double FLIPPER_BACK = 0;
     //OM motors
     private DcMotor tilter = null;
+    private int TILTER_DOWN = 25;
     private Servo graber = null;
     // Sensors
-    public ModernRoboticsI2cRangeSensor frontRange = null;
-    public ModernRoboticsI2cRangeSensor rightRange = null;
-    public ModernRoboticsI2cRangeSensor leftRange = null;
+    public DistanceSensor frontRange = null;
+    public DistanceSensor rightRange = null;
+   // public ModernRoboticsI2cRangeSensor leftRange = null;
     //Gyro
+    BNO055IMU imu;
+    Orientation lastAngles = new Orientation();
+    double globalAngle;
+    double correction;
     //camera
+    private static final String TFOD_MODEL_ASSET = "UltimateGoal.tflite";
+    private static final String LABEL_FIRST_ELEMENT = "Quad";
+    private static final String LABEL_SECOND_ELEMENT = "Single";
+
+    private static final String VUFORIA_KEY = "Ac7M0vn/////AAABmVPF98+WT0Tmowj61HNTEdAWwuxfzVemTNllfnBqmizoY+o47bat1Z7pQRR7AGHP6dSVoUKVPrv2vtr1miYGqMQs5DwgadxKlhpHvMRywSOM10XWKQjJY1dMWa4lJs7/YAvesnmdlatc6CrE9jQ4E1CQLR2pM1rmdI9Ns8RgxmgoRDq0TEPnA5bqIf3WIsnLbjKHuUN5tl4WTfSiKl9Tc1ujEK1GZj3UoNBxgTGXkpscyNUmIk2brrwu9bB+xq2CTaQ9P1bGQ4PpiaRTMElfW47Rg8uos+qdKF2THIUprzvb/gbvT6RDMmfteetOz3Vpj8qgki67/RPRzIUt+dzMe1u+MdpY0crPJ54M+aA3hnE8";
+
+    private VuforiaLocalizer vuforia;
+    private TFObjectDetector tfod;
+
     @Override
     public void runOpMode() {
-        telemetry.addData("Status", "Initialized");
-        telemetry.update();
+        
         // hardware maps
         //drive motors
-        frontLeftDrive  = hardwareMap.get(DcMotor.class, "front_left_drive");
-        frontRightDrive = hardwareMap.get(DcMotor.class, "front_right_drive");
-        backLeftDrive  = hardwareMap.get(DcMotor.class, "back_left_drive");
-        backRightDrive = hardwareMap.get(DcMotor.class, "back_right_drive");
+        frontLeftDrive  = hardwareMap.get(DcMotor.class, "left_front_motor");
+        frontRightDrive = hardwareMap.get(DcMotor.class, "right_front_motor");
+        backLeftDrive  = hardwareMap.get(DcMotor.class, "left_rear_motor");
+        backRightDrive = hardwareMap.get(DcMotor.class, "right_rear_motor");
         //shooter motors
-        frontShooterMotor = hardwareMap.get(DcMotor.class, "front_shooter");
-        backShooterMotor = hardwareMap.get(DcMotor.class, "back_shooter");
+        frontShooterMotor = hardwareMap.get(DcMotor.class, "front_shooter_motor");
+        backShooterMotor = hardwareMap.get(DcMotor.class, "rear_shooter_motor");
         flipperServo = hardwareMap.get(Servo.class, "flipper_servo");
         //OM motors
-        tilter = hardwareMap.get(DcMotor.class, "front_left_drive");
-        graber = hardwareMap.get(Servo.class, "grab_servo");
+        tilter = hardwareMap.get(DcMotor.class, "lift_motor");
+        graber = hardwareMap.get(Servo.class, "gripper_servo");
         // Sensors
-        frontRange = hardwareMap.get(ModernRoboticsI2cRangeSensor.class, "front_range_sensor");
-        frontRange.setI2cAddress(I2cAddr.create8bit(0x3a));
-        rightRange = hardwareMap.get(ModernRoboticsI2cRangeSensor.class, "right_range_sensor");
-        rightRange.setI2cAddress(I2cAddr.create8bit(0x3c));
-        leftRange = hardwareMap.get(ModernRoboticsI2cRangeSensor.class, "left_range_sensor");
-        leftRange.setI2cAddress(I2cAddr.create8bit(0x3e));
+        frontRange = hardwareMap.get(Rev2mDistanceSensor.class, "front_range_sensor");
+        //frontRange.setI2cAddress(I2cAddr.create8bit(0x3a));
+        rightRange = hardwareMap.get(Rev2mDistanceSensor.class, "right_range_sensor");
+        //rightRange.setI2cAddress(I2cAddr.create8bit(0x3c));
+        //leftRange = hardwareMap.get(ModernRoboticsI2cRangeSensor.class, "left_range_sensor");
+        //leftRange.setI2cAddress(I2cAddr.create8bit(0x3e));
         //gyro
+        imu = hardwareMap.get(BNO055IMU.class, "imu");
+        BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
+
+        parameters.mode                = BNO055IMU.SensorMode.IMU;
+        parameters.angleUnit           = BNO055IMU.AngleUnit.DEGREES;
+        parameters.accelUnit           = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
+        parameters.loggingEnabled      = false;
         //camera
+        initVuforia();
+        initTfod();
+
 
         telemetry.addData("Map:","complete");
 
@@ -120,18 +154,59 @@ public class PHRED_AUTO extends LinearOpMode {
         backRightDrive.setDirection(DcMotor.Direction.REVERSE);
 
         // Wait for the game to start (driver presses PLAY)
+        telemetry.addData("Status", "Initialized");
+        telemetry.update();
         waitForStart();
         runtime.reset();
 
         // run until the end of the match (driver presses STOP)
         while (opModeIsActive()) {
-//TODO all this stuff
-            /*Site picker to drive into either A B or C
-            siteA();
-            siteB();
-            siteC();
-            */
+            imu.initialize(parameters);
+
+            while (!isStopRequested() && !imu.isGyroCalibrated()) {
+                sleep(50);
+
+                idle();
+            }
+            //Site picker to drive into either A B or C
+            //if (tfod != null) {
+                //List<Recognition> updatedRecognitions = tfod.getUpdatedRecognitions();
+                //if (updatedRecognitions != null) {
+                    //for (Recognition recognition : updatedRecognitions) {
+                       // if (recognition.getLabel() == LABEL_FIRST_ELEMENT){
+                            siteC();
+                        //} else if (recognition.getLabel() == LABEL_SECOND_ELEMENT){
+                        //    siteB();
+                       // } else {
+                       //     siteA();
+                       // }
+                   // }
+               // }
+           // }
+
         }
+    }
+    private void initVuforia() {
+        /*
+         * Configure Vuforia by creating a Parameter object, and passing it to the Vuforia engine.
+         */
+        VuforiaLocalizer.Parameters parameters = new VuforiaLocalizer.Parameters();
+
+        parameters.vuforiaLicenseKey = VUFORIA_KEY;
+        parameters.cameraName = hardwareMap.get(WebcamName.class, "Webcam 1");
+
+        //  Instantiate the Vuforia engine
+        vuforia = ClassFactory.getInstance().createVuforia(parameters);
+
+        // Loading trackables is not necessary for the TensorFlow Object Detection engine.
+    }
+    private void initTfod() {
+        int tfodMonitorViewId = hardwareMap.appContext.getResources().getIdentifier(
+                "tfodMonitorViewId", "id", hardwareMap.appContext.getPackageName());
+        TFObjectDetector.Parameters tfodParameters = new TFObjectDetector.Parameters(tfodMonitorViewId);
+        tfodParameters.minResultConfidence = 0.8f;
+        tfod = ClassFactory.getInstance().createTFObjectDetector(tfodParameters, vuforia);
+        tfod.loadModelFromAsset(TFOD_MODEL_ASSET, LABEL_FIRST_ELEMENT, LABEL_SECOND_ELEMENT);
     }
     public void siteA() {
         //using the front range sensor as reference it drives until it is at target spot
@@ -150,8 +225,8 @@ public class PHRED_AUTO extends LinearOpMode {
                 backRightDrive.setPower(1);
             }
         }
-        //all three programs differ to returnToLine
-        returnToLine(60,60,true,1);
+        //all three programs differ to turnAndDrop
+        turnAndDrop();
     }
 
     public void siteB() {
@@ -170,7 +245,7 @@ public class PHRED_AUTO extends LinearOpMode {
                 backRightDrive.setPower(1);
             }
         }
-        returnToLine(60,60,true,1);
+        turnAndDrop();
     }
 
     public void siteC() {
@@ -189,11 +264,32 @@ public class PHRED_AUTO extends LinearOpMode {
                 backRightDrive.setPower(1);
             }
         }
-        returnToLine(60,60,true,1);
+        turnAndDrop();
     }
 
+    public void turnAndDrop(){
+        while (globalAngle <= 90 && !isStopRequested()) {
+            frontLeftDrive.setPower(-.5);
+            frontRightDrive.setPower(.5);
+            backLeftDrive.setPower(-.5);
+            backRightDrive.setPower(.5);
+        }
+        tilter.setTargetPosition(TILTER_DOWN);
+        tilter.setPower(.2);
+        tilter.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        while (tilter.isBusy() && !isStopRequested()){}
+        while (globalAngle >= 0 && !isStopRequested()) {
+            frontLeftDrive.setPower(.5);
+            frontRightDrive.setPower(-.5);
+            backLeftDrive.setPower(.5);
+            backRightDrive.setPower(-.5);
+        }
+        returnToLine(60,60,true,1);
+
+    }
     public void returnToLine(double xPOS,double yPOS,boolean firePerm,double fireSpeed){
 
+        int turnAmount = 25;
         // moves backwards towards the line
         while(frontRange.getDistance(DistanceUnit.CM) <= yPOS && !isStopRequested()){
             frontLeftDrive.setPower(-.5);
@@ -212,7 +308,6 @@ public class PHRED_AUTO extends LinearOpMode {
         }
         //resets the amount of time the bot spends shooting one disk
         fireTime.reset();
-//TODO fix the issue or find a work around for fireTime
         while (firePerm && fireTime.milliseconds() != FIRE_TIME && !isStopRequested()){
             frontShooterMotor.setPower(fireSpeed);
             backShooterMotor.setPower(fireSpeed);
@@ -221,8 +316,17 @@ public class PHRED_AUTO extends LinearOpMode {
         flipperServo.setPosition(FLIPPER_FORWARD);
         sleep(300);
         flipperServo.setPosition(FLIPPER_BACK);
-//TODO enable the bot to rotate by a certain amount to hit more of the targets
-        //Turning
+
+
+        //turning
+        while (globalAngle >= turnAmount && !isStopRequested()) {
+            frontLeftDrive.setPower(.5);
+            frontRightDrive.setPower(-.5);
+            backLeftDrive.setPower(.5);
+            backRightDrive.setPower(-.5);
+        }
+        turnAmount = turnAmount + 25;
+        //second target
         fireTime.reset();
         while (firePerm && fireTime.milliseconds() != FIRE_TIME && !isStopRequested()){
             frontShooterMotor.setPower(fireSpeed);
@@ -231,8 +335,15 @@ public class PHRED_AUTO extends LinearOpMode {
         flipperServo.setPosition(FLIPPER_FORWARD);
         sleep(300);
         flipperServo.setPosition(FLIPPER_BACK);
-//TODO enable the bot to rotate by a certain amount to hit more of the targets
-        //Turning
+
+        //turning
+        while (globalAngle >= turnAmount && !isStopRequested()) {
+            frontLeftDrive.setPower(.5);
+            frontRightDrive.setPower(-.5);
+            backLeftDrive.setPower(.5);
+            backRightDrive.setPower(-.5);
+        }
+        //third target
         fireTime.reset();
         while (firePerm && fireTime.milliseconds() != FIRE_TIME && !isStopRequested()){
             frontShooterMotor.setPower(fireSpeed);

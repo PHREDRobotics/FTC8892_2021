@@ -30,6 +30,11 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
+import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
+import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
+import org.firstinspires.ftc.robotcore.external.ClassFactory;
+import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -37,6 +42,8 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
 import org.firstinspires.ftc.teamcode.PHRED_Bot;
+
+import java.util.List;
 
 /**
  * This file contains an example of an iterative (Non-Linear) "OpMode".
@@ -60,14 +67,25 @@ public class XxxConfiguration extends OpMode
     
     // Declare OpMode members.
     private ElapsedTime runtime = new ElapsedTime();
+    private double liftPower =0;
+    
+    private static final String TFOD_MODEL_ASSET = "UltimateGoal.tflite";
+    private static final String LABEL_FIRST_ELEMENT = "Quad";
+    private static final String LABEL_SECOND_ELEMENT = "Single";
+    
+    private static final String VUFORIA_KEY = "Ac7M0vn/////AAABmVPF98+WT0Tmowj61HNTEdAWwuxfzVemTNllfnBqmizoY+o47bat1Z7pQRR7AGHP6dSVoUKVPrv2vtr1miYGqMQs5DwgadxKlhpHvMRywSOM10XWKQjJY1dMWa4lJs7/YAvesnmdlatc6CrE9jQ4E1CQLR2pM1rmdI9Ns8RgxmgoRDq0TEPnA5bqIf3WIsnLbjKHuUN5tl4WTfSiKl9Tc1ujEK1GZj3UoNBxgTGXkpscyNUmIk2brrwu9bB+xq2CTaQ9P1bGQ4PpiaRTMElfW47Rg8uos+qdKF2THIUprzvb/gbvT6RDMmfteetOz3Vpj8qgki67/RPRzIUt+dzMe1u+MdpY0crPJ54M+aA3hnE8";
 
+    private VuforiaLocalizer vuforia;
+    private TFObjectDetector tfod;
       /*
      * Code to run ONCE when the driver hits INIT
      */
     @Override
     public void init() {
         robot.initializeRobot(hardwareMap);
-    
+        robot.liftMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        initVuforia();
+        initTfod();
         telemetry.addData("Status", "Initialized");
     }
 
@@ -76,6 +94,8 @@ public class XxxConfiguration extends OpMode
      */
     @Override
     public void init_loop() {
+        
+
     }
 
     /*
@@ -102,32 +122,36 @@ public class XxxConfiguration extends OpMode
         }
         
         if (gamepad1.dpad_up) {
-            //robot.liftMotor.setTargetPosition(25);
-            robot.liftMotor.setPower(0.8);
+            robot.liftMotor.setTargetPosition(0);
+            liftPower = 1.0;
+            robot.liftMotor.setPower(liftPower);
+            robot.liftMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         } else {
-            robot.liftMotor.setPower(0.0);
+            if (gamepad1.dpad_down) {
+                robot.liftMotor.setTargetPosition(125);
+                liftPower = -0.5;
+                robot.liftMotor.setPower(liftPower);
+                robot.liftMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            } else {
+                liftPower = 0;
+                robot.liftMotor.setPower(liftPower);
+            }
         }
-        
-        if (gamepad1.dpad_down) {
-            //robot.liftMotor.setTargetPosition(25);
-            robot.liftMotor.setPower(-.3);
-        } else {
-            robot.liftMotor.setPower(0.0);
-        }
-        telemetry.addData("Lift Encoder", "position (%d)", robot.liftMotor.getCurrentPosition());
+        telemetry.addData("Lift Power", "power (%s)", liftPower);
+        telemetry.addData("Lift Encoder", "position (%s)", robot.liftMotor.getCurrentPosition());
         
         // Servo Testing
-        /*
+        
         if(gamepad1.b) {
             robot.gripperServo.setPosition(robot.gripperServo.getPosition() + 0.1);
         }
         if(gamepad1.a) {
             robot.gripperServo.setPosition(robot.gripperServo.getPosition() - 0.1);
         }
-        if(gamepad1.x) {
+        if(gamepad1.y) {
             robot.flipperServo.setPosition(robot.flipperServo.getPosition() + 0.1);
         }
-        if(gamepad1.y) {
+        if(gamepad1.x) {
             robot.flipperServo.setPosition(robot.flipperServo.getPosition() - 0.1);
         }
         
@@ -138,9 +162,43 @@ public class XxxConfiguration extends OpMode
            robot.gripperServo.getDirection(),
            robot.flipperServo.getDirection());
         // telemetry.addData("Motors", "left (%.2f), right (%.2f)", leftPower, rightPower);
-        */
+        if (tfod != null) {
+                List<Recognition> updatedRecognitions = tfod.getUpdatedRecognitions();
+                if (updatedRecognitions != null) {
+                    for (Recognition recognition : updatedRecognitions) {
+                        if (recognition.getLabel() == LABEL_FIRST_ELEMENT){
+                            telemetry.addData("sees:","4 Rings" );
+                        } else if (recognition.getLabel() == LABEL_SECOND_ELEMENT){
+                            telemetry.addData("sees:","1 Rings" );
+                        } else {
+                            telemetry.addData("sees:","0 Rings" );
+                        }
+                    }
+                }
+            }
     }
+     private void initVuforia() {
+        /*
+         * Configure Vuforia by creating a Parameter object, and passing it to the Vuforia engine.
+         */
+        VuforiaLocalizer.Parameters parameters = new VuforiaLocalizer.Parameters();
 
+        parameters.vuforiaLicenseKey = VUFORIA_KEY;
+        parameters.cameraName = hardwareMap.get(WebcamName.class, "Webcam 1");
+
+        //  Instantiate the Vuforia engine
+        vuforia = ClassFactory.getInstance().createVuforia(parameters);
+
+        // Loading trackables is not necessary for the TensorFlow Object Detection engine.
+    }
+    private void initTfod() {
+        int tfodMonitorViewId = hardwareMap.appContext.getResources().getIdentifier(
+                "tfodMonitorViewId", "id", hardwareMap.appContext.getPackageName());
+        TFObjectDetector.Parameters tfodParameters = new TFObjectDetector.Parameters(tfodMonitorViewId);
+        tfodParameters.minResultConfidence = 0.8f;
+        tfod = ClassFactory.getInstance().createTFObjectDetector(tfodParameters, vuforia);
+        tfod.loadModelFromAsset(TFOD_MODEL_ASSET, LABEL_FIRST_ELEMENT, LABEL_SECOND_ELEMENT);
+    }
     /*
      * Code to run ONCE after the driver hits STOP
      */
