@@ -30,6 +30,7 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.util.Range;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.util.Hardware;
@@ -42,20 +43,31 @@ import org.firstinspires.ftc.teamcode.PHRED_Bot;
 
 
 /**
- * This file contains an example of an iterative (Non-Linear) "OpMode".
- * An OpMode is a 'program' that runs in either the autonomous or the teleop period of an FTC match.
- * The names of OpModes appear on the menu of the FTC Driver Station.
- * When an selection is made from the menu, the corresponding OpMode
- * class is instantiated on the Robot Controller and executed.
- * <p>
- * This particular OpMode just executes a basic Tank Drive Teleop for a two wheeled robot
- * It includes all the skeletal structure that all iterative OpModes contain.
- * <p>
- * Use Android Studios to Copy this Class, and Paste it into your team's code folder with a new name.
- * Remove or comment out the @Disabled line to add this opmode to the Driver Station OpMode list
+ * This is the Main Teleop program for the PHRED FTC Robot
+ *
+ * Controls:
+ *   Gamepad 1:
+ *     Left Joystick:
+ *       Forward/Back   - Drive the Robot Forward/Reverse
+ *       Left/Right     - "Slide" the Robot Left/Right
+ *     Right Joystick
+ *       Left/Right     - Turn the robot Counter-Clockwise/Clockwise
+ *     Left Trigger     - Drive the lift arm up
+ *     Left Bumper      - Reset the lift arm encoder
+ *
+ *   Gamepad 2:
+ * 
+ * Actions:
+ * Close/Open grabber
+ * forward/back flipper
+ * turn on shooters
+ * tilter up/back
+ * With the Tilt Arm at top - Reset encoder
+ * 
+ * Drive to shooting line
  */
 
-@TeleOp(name = "TeleOp: Iterative OpMode", group = "Iterative Opmode")
+@TeleOp(name = "TeleOp: Main TeleOp", group = "Iterative Opmode")
 
 public class MainTeleOp extends OpMode {
 
@@ -68,27 +80,19 @@ public class MainTeleOp extends OpMode {
     private ElapsedTime runtime = new ElapsedTime();
     private ElapsedTime shootCycle = new ElapsedTime();
 
-    private double rightFrontPower = 0.0;
-    private double rightRearPower = 0.0;
-    private double leftFrontPower = 0.0;
-    private double leftRearPower = 0.0;
+    private double frontRightPower = 0.0;
+    private double backRightPower = 0.0;
+    private double frontLeftPower = 0.0;
+    private double backLeftPower = 0.0;
 
     // Debounce variables
-    private boolean leftBumperPressed = false;
-    private boolean rightBumperPressed = false;
+    private boolean dpad2UpPressed = false;
+    private boolean dpad2DownPressed = false;
 
-    private enum State {
-        DRIVE,
-        DROP_LIFT,
-        GRIP,
-        RAISE_LIFT,
-        DROP_RING,
-        FLIPPER,
-        SHOOT
-    }
-
-    private State currentState = State.DRIVE;
-
+    private boolean shooting = false;
+    private boolean rightBumper2Press = false;
+    
+    
     @Override
     public void init() {
 
@@ -126,48 +130,109 @@ public class MainTeleOp extends OpMode {
         double turn = -gamepad1.right_stick_x;
 
         // - This uses basic math to combine motions and is easier to drive straight.
-        leftFrontPower = Range.clip(drive + turn + strafe, -1.0, 1.0);
-        rightFrontPower = Range.clip(-drive + turn + strafe, -1.0, 1.0);
-        leftRearPower = Range.clip(-drive + -turn + strafe, -1.0, 1.0);
-        rightRearPower = Range.clip(drive + -turn + strafe, -1.0, 1.0);
+        frontLeftPower = Range.clip(drive + turn + strafe, -1.0, 1.0);
+        frontRightPower = Range.clip(-drive + turn + strafe, -1.0, 1.0);
+        backLeftPower = Range.clip(-drive + -turn + strafe, -1.0, 1.0);
+        backRightPower = Range.clip(drive + -turn + strafe, -1.0, 1.0);
 
         // Now Drive the Robot
-        robot.driveRobot(rightFrontPower, leftFrontPower, rightRearPower, leftRearPower);
+        robot.driveRobot(frontRightPower, frontLeftPower, backRightPower, backLeftPower);
+        
+        // --- Servo Controls ---
+        // Grabber Servo Open/Close
+        if(gamepad2.x) {
+            robot.gripperServo.setPosition(0);
+        }
+
+        if (gamepad2.y) {
+            robot.gripperServo.setPosition(1);
+        }
+
+        // Flipper Servo Open/Close
+        if(gamepad2.a) {
+            robot.flipperServo.setPosition(0);
+        }
+        
+        if (gamepad2.b) {
+            robot.flipperServo.setPosition(1);
+        }
+
+        // Lifter Arm Routines
+        //  DON'T LOCK UP OTHER ACTIONS
+        if (gamepad2.dpad_up 
+              && !dpad2UpPressed ) {
+            // first press of dpad_up so run to position(up)
+            robot.liftMotor.setTargetPosition(robot.LIFT_TOP);
+            robot.liftMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            robot.liftMotor.setPower(robot.LIFT_SPEED_MAX);
+            
+            dpad2UpPressed = true;
+        } 
+
+        if (gamepad2.dpad_down 
+              && !dpad2DownPressed ) {
+            // first press of dpad_down so run to position(down)
+            robot.liftMotor.setTargetPosition(robot.LIFT_BOTTOM);
+            robot.liftMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            robot.liftMotor.setPower(-robot.LIFT_SPEED_MAX);
+            
+            dpad2DownPressed = true;
+        } 
+        
+        if ((dpad2UpPressed || dpad2DownPressed) // if started lift arm
+             && !robot.liftMotor.isBusy()) {     // and now done
+            robot.liftMotor.setPower(0);
+            dpad2UpPressed = false;
+            dpad2DownPressed = false;
+        }
+        
+        // Shooting
+        if (gamepad2.right_bumper && !rightBumper2Press) {
+            shootARing();
+        }
+        
+        // Turn off shooting
+        if (shooting && shootCycle.milliseconds() > robot.SHOOTING_MILLISECONDS) {
+            shooting = false;
+            robot.shooterOff();
+        }
+        
+        
+        /* ------   U t i l i t y   R o u t i n e s   ------ */
+        // DRIVE to lift Arm up
+        //  Robot must be stopped for this to run
+        //  Drive all the way to top before resetting the encoder with the
+        //    left_bumper
+        if (gamepad1.left_trigger > 0 
+              && robot.isStopped(drive, turn, strafe)) {
+            robot.liftMotor.setPower(gamepad1.left_trigger);
+        }
+        
+        // Reset the lift motor encoder
+        //   Robot must be stopped
+        //   Arm should be all the way up
+        if (gamepad1.left_bumper 
+        && robot.isStopped(drive, turn, strafe)) {
+            robot.liftMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        }
+        
+        if (gamepad2.left_bumper) {
+            robot.shooterOn();
+        } else {
+           if (!shooting) {
+               robot.shooterOff();
+           }
+        }
+        
+        // reset keyPress status
+        rightBumper2Press = gamepad2.right_bumper;
         
 
-        // State Machine
-     //   liftEncoder = robot.liftMotor.getCurrentPosition();
 
-        // State Machine Actions: Grab, LiftUp, Drop, LiftDown, Shoot
-/*
-        if(gamepad2.left_bumper != leftBumperPressed ) {
-            if ( gamepad2.left_bumper  ) {
-               // Flag trigger
-               leftBumperPressed = true;
-            } else {
-                leftBumperPressed = false;
-            }
-        }
-
-        if ( isStopped(drive, turn, strafe)) {
-            if (gamepad2.right_bumper != rightBumperPressed) {
-                if (gamepad2.right_bumper) {
-                    // Shoot a ring
-                    shootARing();
-                    rightBumperPressed = true;
-                } else {
-                    rightBumperPressed = false;
-                }
-            }
-        }
-
-        // State Machine
-*/
         // Show the elapsed game time and wheel power.
         telemetry.addData("Status", "Run Time: " + runtime.toString());
-        telemetry.addData("Front Motors", "left (%.2f), right (%.2f)", leftFrontPower, rightFrontPower);
-//        telemetry.addData("Lift Encoder", liftEncoder);
-        telemetry.update();
+        telemetry.addData("Lift Encoder", robot.liftMotor.getCurrentPosition());
+
     }
 
 
@@ -180,46 +245,28 @@ public class MainTeleOp extends OpMode {
 
     }
 
-/*
+
     void shootARing() {
         // Turn Motors on
-        robot.backShooterMotor.setPower(1.0);
-        robot.frontShooterMotor.setPower(1.0);
+        robot.shooterOn();
 
         // set a timer
         shootCycle.reset();
+        shooting = true;
 
         // start the servo
-        robot.flipperServo.setPosition( robot.FLIPPER_FORWARD );
-
-        // wait for the servo
-        while ( robot.flipperServo.getPosition() < robot.FLIPPER_FORWARD) {
-            // insert thumb twiddle
-
+        robot.flipperServo.setPosition(1);
+        for (int i=0; i<500; i++ ){
+            telemetry.addData("Counter", i);
         }
 
         //pull the servo back
-        robot.flipperServo.setPosition( robot.FLIPPER_BACK );
-
-       //wait for the servo
-        while (robot.flipperServo.getPosition() > robot.FLIPPER_BACK) {
-            // insert thumb twiddle
-
+        robot.flipperServo.setPosition(0);
+        for (int i=0; i<500; i++ ){
+            telemetry.addData("Counter", i);
         }
-
-        // wait for the timer
-        while ( shootCycle.milliseconds() < 1000 )  {
-            // insert thumb twiddle
-        }
-
-        // return control
 
     }
 
-    boolean isStopped(double drive, double turn, double strafe) {
-        return drive == 0 && turn == 0 && strafe == 0;
-    }
-*/
-
-
+    
 }
