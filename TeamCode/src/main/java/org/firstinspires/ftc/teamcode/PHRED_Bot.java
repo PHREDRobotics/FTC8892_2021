@@ -29,20 +29,28 @@
 
 package org.firstinspires.ftc.teamcode;
 
-import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.util.Hardware;
-// import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-// import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-
-import java.lang.annotation.Target;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.hardware.rev.Rev2mDistanceSensor;
 import com.qualcomm.robotcore.hardware.I2cAddr;
-import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cGyro;
-
-
+import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.hardware.Servo;
+
+import org.firstinspires.ftc.robotcore.external.ClassFactory;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
+import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
+import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
+import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
+
 import com.qualcomm.robotcore.util.ElapsedTime;
+import com.qualcomm.robotcore.util.Range;
+
+import java.lang.annotation.Target;
+import java.util.List;
+
 
 /**
  * This is NOT an opmode.
@@ -69,26 +77,31 @@ public class PHRED_Bot
     public double GRIPPER_SERVO_FORWARD = 1.0;
     public double GRIPPER_SERVO_BACK = 0.5;
 
-    public int LIFT_TOP= 25;
-    public int LIFT_BOTTOM = 0;
-    public double LIFT_SPEED_MAX = 0.1;
+    public int LIFT_TOP= -40;
+    public int LIFT_BOTTOM = -100;
+    public double LIFT_SPEED_MAX = 0.7;
 
     public double SHOOTING_SPEED = 1.0;
+    public int SHOOTING_MILLISECONDS = 2500;
 
     // Motors ---------------------------
-    public DcMotor leftFrontDrive = null;
-    public DcMotor leftRearDrive = null;
-    public DcMotor rightFrontDrive = null;
-    public DcMotor rightRearDrive = null;
+    public DcMotor frontLeftDrive = null;
+    public DcMotor backLeftDrive = null;
+    public DcMotor frontRightDrive = null;
+    public DcMotor backRightDrive = null;
     public DcMotor liftMotor = null;
     public DcMotor frontShooterMotor = null;
-    public DcMotor rearShooterMotor = null;
+    public DcMotor backShooterMotor = null;
     public Servo gripperServo = null;
     public Servo flipperServo = null;
 
     // Sensors --------------------------
-    public Rev2mDistanceSensor frontRange = null;
-
+    public Rev2mDistanceSensor frontRangeSensor = null;
+    public Rev2mDistanceSensor rightRangeSensor = null;
+    
+    // Inertial Measurement Unit - IMU ---
+    public BNO055IMU imu;
+    
     /* Local Members */
     HardwareMap hardwareMap = null;
     private ElapsedTime period = new ElapsedTime();
@@ -103,41 +116,55 @@ public class PHRED_Bot
         
         hardwareMap = anHwMap;
 
-        // Define and initialize motors
-        rightFrontDrive = hardwareMap.get(DcMotor.class, "right_front_motor");
-        rightRearDrive = hardwareMap.get(DcMotor.class, "right_rear_motor");
-        leftFrontDrive = hardwareMap.get(DcMotor.class, "left_front_motor");
-        leftRearDrive = hardwareMap.get(DcMotor.class, "left_rear_motor");
-        liftMotor = hardwareMap.get(DcMotor.class, "lift_motor");
-        frontShooterMotor = hardwareMap.get(DcMotor.class, "front_shooter_motor");
-        rearShooterMotor = hardwareMap.get(DcMotor.class, "rear_shooter_motor");
+        // --   D e f i n e   a n d   I n i t i a l i z e   H a r d w a r e   --
+        
+        // Drive Motors
+        frontRightDrive = hardwareMap.get(DcMotor.class, "front_right_motor");
+        backRightDrive = hardwareMap.get(DcMotor.class, "back_right_motor");
+        frontLeftDrive = hardwareMap.get(DcMotor.class, "front_left_motor");
+        backLeftDrive = hardwareMap.get(DcMotor.class, "back_left_motor");
+        // ------ Set motor direction
+        frontRightDrive.setDirection(DcMotor.Direction.FORWARD);
+        backRightDrive.setDirection(DcMotor.Direction.REVERSE);
+        frontLeftDrive.setDirection(DcMotor.Direction.FORWARD);
+        backLeftDrive.setDirection(DcMotor.Direction.REVERSE);
+        // ------ Set Motors to zero power
+        frontRightDrive.setPower(0);
+        backRightDrive.setPower(0);
+        frontLeftDrive.setPower(0);
+        backLeftDrive.setPower(0);
 
+        // Shooter Motors
+        frontShooterMotor = hardwareMap.get(DcMotor.class, "front_shooter_motor");
+        backShooterMotor = hardwareMap.get(DcMotor.class, "back_shooter_motor");
+        // ------ Set motor direction
+        frontShooterMotor.setDirection(DcMotor.Direction.REVERSE);
+        backShooterMotor.setDirection(DcMotor.Direction.REVERSE);
+        // ------ Set Motors to zero power
+        frontShooterMotor.setPower(0);
+        backShooterMotor.setPower(0);
+
+        // Object Manipulation Motors
+        liftMotor = hardwareMap.get(DcMotor.class, "lift_motor");
+        // ------ Set motor direction
+        liftMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        liftMotor.setDirection(DcMotor.Direction.FORWARD);
+        
+        // Set up Servos
         flipperServo = hardwareMap.get(Servo.class, "flipper_servo");
         gripperServo = hardwareMap.get(Servo.class, "gripper_servo");
-
-        // Set motor direction
-        rightFrontDrive.setDirection(DcMotor.Direction.FORWARD);
-        rightRearDrive.setDirection(DcMotor.Direction.REVERSE);
-        leftFrontDrive.setDirection(DcMotor.Direction.FORWARD);
-        leftRearDrive.setDirection(DcMotor.Direction.REVERSE);
         
-        frontShooterMotor.setDirection(DcMotor.Direction.REVERSE);
-        rearShooterMotor.setDirection(DcMotor.Direction.REVERSE);
-        
-        liftMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        liftMotor.setDirection(DcMotor.Direction.REVERSE);
-        
+        // Range Sensors
+        frontRangeSensor = hardwareMap.get(Rev2mDistanceSensor.class, "front_range_sensor");
+        rightRangeSensor = hardwareMap.get(Rev2mDistanceSensor.class, "right_range_sensor");
 
-        // Set Motors to zero power
-        rightFrontDrive.setPower(0);
-        rightRearDrive.setPower(0);
-        leftFrontDrive.setPower(0);
-        leftRearDrive.setPower(0);
-
-        // Set-up Sensors
-        // frontRange = hwMap.get(Rev2mDistanceSensor.class, "front_range_sensor");
-
-        ////  gyro = hwMap.get(ModernRoboticsI2cGyro.class, "gyro");
+        // Inertial Measurement Unit - IMU
+        imu = hardwareMap.get(BNO055IMU.class, "imu");
+        BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
+        parameters.mode                = BNO055IMU.SensorMode.IMU;
+        parameters.angleUnit           = BNO055IMU.AngleUnit.DEGREES;
+        parameters.accelUnit           = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
+        parameters.loggingEnabled      = false;
 
     } // end Init
 
@@ -146,14 +173,14 @@ public class PHRED_Bot
 
     /* Robot Drive Functions */
     public void driveRobot(
-            double rightFrontPower,
-            double leftFrontPower,
-            double rightBackPower,
-            double leftBackPower) {
-        rightFrontDrive.setPower(rightFrontPower);
-        leftFrontDrive.setPower(leftFrontPower);
-        rightRearDrive.setPower(rightBackPower);
-        leftRearDrive.setPower(leftBackPower);
+            double frontRightPower,
+            double frontLeftPower,
+            double backRightPower,
+            double backLeftPower) {
+        frontRightDrive.setPower(frontRightPower);
+        frontLeftDrive.setPower(frontLeftPower);
+        backRightDrive.setPower(backRightPower);
+        backLeftDrive.setPower(backLeftPower);
     }
 
     public void driveForward (double forwardSpeed) {
@@ -174,12 +201,12 @@ public class PHRED_Bot
     
     public void shooterOn() {
         frontShooterMotor.setPower(SHOOTING_SPEED);
-        rearShooterMotor.setPower(SHOOTING_SPEED);
+        backShooterMotor.setPower(SHOOTING_SPEED);
     }
     
     public void shooterOff() {
         frontShooterMotor.setPower(0.0);
-        rearShooterMotor.setPower(0.0);
+        backShooterMotor.setPower(0.0);
     }
 /* 
     //turn is reversed
@@ -200,6 +227,10 @@ public class PHRED_Bot
 */
     public void stopRobot() {
         driveRobot(0, 0, 0, 0);
+    }
+    
+    public boolean isStopped(double drive, double turn, double strafe) {
+        return (drive == 0.0 && turn == 0.0 && strafe == 0.0); 
     }
 
     /* Gyro Functions */

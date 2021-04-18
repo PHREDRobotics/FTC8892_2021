@@ -29,13 +29,10 @@
 
 package org.firstinspires.ftc.teamcode;
 
-import com.qualcomm.hardware.modernrobotics.ModernRoboticsI2cRangeSensor;
 import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.hardware.rev.Rev2mDistanceSensor;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.I2cAddr;
@@ -77,7 +74,7 @@ public class PHRED_AUTO extends LinearOpMode {
 
     private int FIRE_TIME = 2000;
     //drive motors
-    private DcMotor frontLeftDrive = null;
+    private DcMotor  frontLeftDrive = null;
     private DcMotor frontRightDrive = null;
     private DcMotor backLeftDrive = null;
     private DcMotor backRightDrive = null;
@@ -91,10 +88,10 @@ public class PHRED_AUTO extends LinearOpMode {
     //OM motors
     private DcMotor tilter = null;
     private int TILTER_DOWN = 25;
-    private Servo graber = null;
+    private Servo grabberServo = null;
     // Sensors
-    public DistanceSensor frontRange = null;
-    public DistanceSensor rightRange = null;
+    public DistanceSensor frontRangeSensor = null;
+    public DistanceSensor rightRangeSensor = null;
    // public ModernRoboticsI2cRangeSensor leftRange = null;
     //Gyro
     BNO055IMU imu;
@@ -126,11 +123,11 @@ public class PHRED_AUTO extends LinearOpMode {
         flipperServo = hardwareMap.get(Servo.class, "flipper_servo");
         //OM motors
         tilter = hardwareMap.get(DcMotor.class, "lift_motor");
-        graber = hardwareMap.get(Servo.class, "gripper_servo");
+        grabberServo = hardwareMap.get(Servo.class, "gripper_servo");
         // Sensors
-        frontRange = hardwareMap.get(Rev2mDistanceSensor.class, "front_range_sensor");
+        frontRangeSensor = hardwareMap.get(Rev2mDistanceSensor.class, "front_range_sensor");
         //frontRange.setI2cAddress(I2cAddr.create8bit(0x3a));
-        rightRange = hardwareMap.get(Rev2mDistanceSensor.class, "right_range_sensor");
+        rightRangeSensor = hardwareMap.get(Rev2mDistanceSensor.class, "right_range_sensor");
         //rightRange.setI2cAddress(I2cAddr.create8bit(0x3c));
         //leftRange = hardwareMap.get(ModernRoboticsI2cRangeSensor.class, "left_range_sensor");
         //leftRange.setI2cAddress(I2cAddr.create8bit(0x3e));

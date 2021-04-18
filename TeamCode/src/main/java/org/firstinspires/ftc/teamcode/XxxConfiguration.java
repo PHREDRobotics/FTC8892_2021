@@ -122,21 +122,42 @@ public class XxxConfiguration extends OpMode
         }
         
         if (gamepad1.dpad_up) {
-            robot.liftMotor.setTargetPosition(0);
+            robot.liftMotor.setTargetPosition(-20);
             liftPower = 1.0;
-            robot.liftMotor.setPower(liftPower);
+            
             robot.liftMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            robot.liftMotor.setPower(liftPower);
         } else {
             if (gamepad1.dpad_down) {
-                robot.liftMotor.setTargetPosition(125);
+                robot.liftMotor.setTargetPosition(-110);
                 liftPower = -0.5;
-                robot.liftMotor.setPower(liftPower);
+                
                 robot.liftMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                robot.liftMotor.setPower(liftPower);
+            } else {
+                if (!robot.liftMotor.isBusy()){
+                    liftPower = 0;
+                    robot.liftMotor.setPower(liftPower);
+                }
+            }
+        }
+        /*
+        if (gamepad1.left_trigger > 0) {
+            //robot.liftMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+            liftPower = -gamepad1.left_trigger;
+            robot.liftMotor.setPower(liftPower);
+        } else {
+            if (gamepad1.right_trigger > 0) {
+                //robot.liftMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+                liftPower = gamepad1.right_trigger;
+                robot.liftMotor.setPower(liftPower);
+
             } else {
                 liftPower = 0;
                 robot.liftMotor.setPower(liftPower);
             }
         }
+        */
         telemetry.addData("Lift Power", "power (%s)", liftPower);
         telemetry.addData("Lift Encoder", "position (%s)", robot.liftMotor.getCurrentPosition());
         
