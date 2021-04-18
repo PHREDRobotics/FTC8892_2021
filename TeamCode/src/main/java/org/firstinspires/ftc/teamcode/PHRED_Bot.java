@@ -30,9 +30,13 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.util.Hardware;
+import org.firstinspires.ftc.robotcore.external.navigation.AxesReference;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.hardware.rev.Rev2mDistanceSensor;
+import com.qualcomm.robotcore.hardware.DistanceSensor;
 import com.qualcomm.robotcore.hardware.I2cAddr;
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.hardware.Servo;
@@ -77,11 +81,11 @@ public class PHRED_Bot
     public double GRIPPER_SERVO_FORWARD = 1.0;
     public double GRIPPER_SERVO_BACK = 0.5;
 
-    public int LIFT_TOP= -40;
-    public int LIFT_BOTTOM = -100;
-    public double LIFT_SPEED_MAX = 0.7;
+    public int LIFT_TOP= 114;
+    public int LIFT_BOTTOM = 10;
+    public double LIFT_SPEED_MAX = -0.8;
 
-    public double SHOOTING_SPEED = 1.0;
+    public double SHOOTING_SPEED = 0.85;
     public int SHOOTING_MILLISECONDS = 2500;
 
     // Motors ---------------------------
@@ -96,8 +100,8 @@ public class PHRED_Bot
     public Servo flipperServo = null;
 
     // Sensors --------------------------
-    public Rev2mDistanceSensor frontRangeSensor = null;
-    public Rev2mDistanceSensor rightRangeSensor = null;
+    public DistanceSensor frontRangeSensor;
+    public DistanceSensor rightRangeSensor;
     
     // Inertial Measurement Unit - IMU ---
     public BNO055IMU imu;
@@ -124,10 +128,10 @@ public class PHRED_Bot
         frontLeftDrive = hardwareMap.get(DcMotor.class, "front_left_motor");
         backLeftDrive = hardwareMap.get(DcMotor.class, "back_left_motor");
         // ------ Set motor direction
-        frontRightDrive.setDirection(DcMotor.Direction.FORWARD);
+        frontRightDrive.setDirection(DcMotor.Direction.REVERSE);
         backRightDrive.setDirection(DcMotor.Direction.REVERSE);
         frontLeftDrive.setDirection(DcMotor.Direction.FORWARD);
-        backLeftDrive.setDirection(DcMotor.Direction.REVERSE);
+        backLeftDrive.setDirection(DcMotor.Direction.FORWARD);
         // ------ Set Motors to zero power
         frontRightDrive.setPower(0);
         backRightDrive.setPower(0);
@@ -155,16 +159,19 @@ public class PHRED_Bot
         gripperServo = hardwareMap.get(Servo.class, "gripper_servo");
         
         // Range Sensors
-        frontRangeSensor = hardwareMap.get(Rev2mDistanceSensor.class, "front_range_sensor");
-        rightRangeSensor = hardwareMap.get(Rev2mDistanceSensor.class, "right_range_sensor");
+        frontRangeSensor = hardwareMap.get(DistanceSensor.class, "front_range_sensor");
+        rightRangeSensor = hardwareMap.get(DistanceSensor.class, "right_range_sensor");
 
         // Inertial Measurement Unit - IMU
-        imu = hardwareMap.get(BNO055IMU.class, "imu");
+        
         BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
         parameters.mode                = BNO055IMU.SensorMode.IMU;
         parameters.angleUnit           = BNO055IMU.AngleUnit.DEGREES;
         parameters.accelUnit           = BNO055IMU.AccelUnit.METERS_PERSEC_PERSEC;
         parameters.loggingEnabled      = false;
+        
+        imu = hardwareMap.get(BNO055IMU.class, "imu");
+        imu.initialize(parameters);
 
     } // end Init
 
@@ -184,21 +191,26 @@ public class PHRED_Bot
     }
 
     public void driveForward (double forwardSpeed) {
-        driveRobot (forwardSpeed, forwardSpeed, forwardSpeed, forwardSpeed);
+        driveRobot (-forwardSpeed, -forwardSpeed, -forwardSpeed, -forwardSpeed);
     }
 
     public void driveBackwards (double backwardSpeed) {
-        driveRobot (-backwardSpeed, -backwardSpeed, -backwardSpeed, -backwardSpeed);
+        driveRobot (backwardSpeed, backwardSpeed, backwardSpeed, backwardSpeed);
     }
 
     public void driveLeft (double leftSpeed) {
-        driveRobot (leftSpeed, -leftSpeed, -leftSpeed, leftSpeed);
+        driveRobot (-leftSpeed, +leftSpeed, +leftSpeed, -leftSpeed);
     }
 
     public void driveRight (double rightSpeed) {
-        driveRobot (-rightSpeed, rightSpeed, rightSpeed, -rightSpeed);
+        driveRobot (+rightSpeed, -rightSpeed, -rightSpeed, rightSpeed);
     }
-    
+    public void turnLeft (double turnSpeed){
+        driveRobot (-turnSpeed, turnSpeed, -turnSpeed, turnSpeed);
+    }
+    public void turnRight (double turnSpeed){
+        driveRobot (turnSpeed, -turnSpeed, turnSpeed, -turnSpeed);
+    }
     public void shooterOn() {
         frontShooterMotor.setPower(SHOOTING_SPEED);
         backShooterMotor.setPower(SHOOTING_SPEED);
@@ -207,6 +219,9 @@ public class PHRED_Bot
     public void shooterOff() {
         frontShooterMotor.setPower(0.0);
         backShooterMotor.setPower(0.0);
+    }
+    public float angle(){
+        return imu.getAngularOrientation(AxesReference.INTRINSIC, AxesOrder.ZYX, AngleUnit.DEGREES).firstAngle;
     }
 /* 
     //turn is reversed

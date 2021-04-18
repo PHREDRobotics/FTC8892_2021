@@ -30,6 +30,7 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.hardware.DistanceSensor;
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 import com.qualcomm.hardware.rev.Rev2mDistanceSensor;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -48,6 +49,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
 import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
+import org.firstinspires.ftc.teamcode.PHRED_Bot;
 
 import java.util.List;
 
@@ -67,6 +69,7 @@ import java.util.List;
 @Autonomous(name="PHRED_Auto", group="Linear Opmode")
 
 public class PHRED_AUTO extends LinearOpMode {
+    private PHRED_Bot robot = new PHRED_Bot();
 
     // Declare OpMode members.
     private ElapsedTime runtime = new ElapsedTime();
@@ -74,7 +77,7 @@ public class PHRED_AUTO extends LinearOpMode {
 
     private int FIRE_TIME = 2000;
     //drive motors
-    private DcMotor  frontLeftDrive = null;
+    /*private DcMotor  frontLeftDrive = null;
     private DcMotor frontRightDrive = null;
     private DcMotor backLeftDrive = null;
     private DcMotor backRightDrive = null;
@@ -82,16 +85,16 @@ public class PHRED_AUTO extends LinearOpMode {
     private DcMotor frontShooterMotor = null;
     private DcMotor backShooterMotor = null;
     private Servo flipperServo = null;
-
+*/
     private double FLIPPER_FORWARD = 1.5;
     private double FLIPPER_BACK = 0;
     //OM motors
-    private DcMotor tilter = null;
-    private int TILTER_DOWN = 25;
-    private Servo grabberServo = null;
+    //private DcMotor tilter = null;
+    private int TILTER_DOWN = -100;
+    //private Servo grabberServo = null;
     // Sensors
-    public DistanceSensor frontRangeSensor = null;
-    public DistanceSensor rightRangeSensor = null;
+    //public DistanceSensor frontRangeSensor = null;
+    //public DistanceSensor rightRangeSensor = null;
    // public ModernRoboticsI2cRangeSensor leftRange = null;
     //Gyro
     BNO055IMU imu;
@@ -111,15 +114,18 @@ public class PHRED_AUTO extends LinearOpMode {
     @Override
     public void runOpMode() {
         
-        // hardware maps
+                robot.initializeRobot(hardwareMap);
+
+        
+        /*// hardware maps
         //drive motors
-        frontLeftDrive  = hardwareMap.get(DcMotor.class, "left_front_motor");
-        frontRightDrive = hardwareMap.get(DcMotor.class, "right_front_motor");
-        backLeftDrive  = hardwareMap.get(DcMotor.class, "left_rear_motor");
-        backRightDrive = hardwareMap.get(DcMotor.class, "right_rear_motor");
+        frontLeftDrive  = hardwareMap.get(DcMotor.class, "front_left_motor");
+        frontRightDrive = hardwareMap.get(DcMotor.class, "front_right_motor");
+        backLeftDrive  = hardwareMap.get(DcMotor.class, "back_left_motor");
+        backRightDrive = hardwareMap.get(DcMotor.class, "back_right_motor");
         //shooter motors
         frontShooterMotor = hardwareMap.get(DcMotor.class, "front_shooter_motor");
-        backShooterMotor = hardwareMap.get(DcMotor.class, "rear_shooter_motor");
+        backShooterMotor = hardwareMap.get(DcMotor.class, "back_shooter_motor");
         flipperServo = hardwareMap.get(Servo.class, "flipper_servo");
         //OM motors
         tilter = hardwareMap.get(DcMotor.class, "lift_motor");
@@ -131,7 +137,7 @@ public class PHRED_AUTO extends LinearOpMode {
         //rightRange.setI2cAddress(I2cAddr.create8bit(0x3c));
         //leftRange = hardwareMap.get(ModernRoboticsI2cRangeSensor.class, "left_range_sensor");
         //leftRange.setI2cAddress(I2cAddr.create8bit(0x3e));
-        //gyro
+        *///gyro
         imu = hardwareMap.get(BNO055IMU.class, "imu");
         BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
 
@@ -147,17 +153,11 @@ public class PHRED_AUTO extends LinearOpMode {
         telemetry.addData("Map:","complete");
 
         //
-        backLeftDrive.setDirection(DcMotor.Direction.REVERSE);
-        backRightDrive.setDirection(DcMotor.Direction.REVERSE);
+        //backLeftDrive.setDirection(DcMotor.Direction.REVERSE);
+        //backRightDrive.setDirection(DcMotor.Direction.REVERSE);
 
-        // Wait for the game to start (driver presses PLAY)
-        telemetry.addData("Status", "Initialized");
-        telemetry.update();
-        waitForStart();
-        runtime.reset();
 
-        // run until the end of the match (driver presses STOP)
-        while (opModeIsActive()) {
+        //setup-------------------------------
             imu.initialize(parameters);
 
             while (!isStopRequested() && !imu.isGyroCalibrated()) {
@@ -165,22 +165,61 @@ public class PHRED_AUTO extends LinearOpMode {
 
                 idle();
             }
-            //Site picker to drive into either A B or C
-            //if (tfod != null) {
-                //List<Recognition> updatedRecognitions = tfod.getUpdatedRecognitions();
-                //if (updatedRecognitions != null) {
-                    //for (Recognition recognition : updatedRecognitions) {
-                       // if (recognition.getLabel() == LABEL_FIRST_ELEMENT){
+            if (tfod != null) {
+            tfod.activate();
+            tfod.setZoom(2.5, 16.0/9.0);
+        }
+           
+        //end of setup-----------------------
+        // Wait for the game to start (driver presses PLAY)
+        telemetry.addData("Status", "Initialized");
+        telemetry.update();
+        waitForStart();
+        runtime.reset();
+        
+         //Site picker to drive into either A B or C
+            if (tfod != null) {
+                List<Recognition> updatedRecognitions = tfod.getUpdatedRecognitions();
+                if (updatedRecognitions != null) {
+                    telemetry.addData("# Object Detected", updatedRecognitions.size());
+                    if (updatedRecognitions.size() == 0){
+                        telemetry.addData("Objects:", "none" );
+                        siteA();
+                    }else{
+                        int i = 0;
+                      for (Recognition recognition : updatedRecognitions) {
+                        telemetry.addData(String.format("label (%d)", i), recognition.getLabel());
+                        telemetry.addData(String.format("  left,top (%d)", i), "%.03f , %.03f",
+                                recognition.getLeft(), recognition.getTop());
+                        telemetry.addData(String.format("  right,bottom (%d)", i), "%.03f , %.03f",
+                                recognition.getRight(), recognition.getBottom());
+                      
+                    
+                        if (recognition.getLabel().equals("Single")){
+                            telemetry.addData("Objects:", "One");
+                            siteB();
+                        }else if (recognition.getLabel().equals("Quad")){
+                            telemetry.addData("Objects:", "four");
                             siteC();
-                        //} else if (recognition.getLabel() == LABEL_SECOND_ELEMENT){
-                        //    siteB();
-                       // } else {
-                       //     siteA();
-                       // }
-                   // }
-               // }
-           // }
+                        }
+                      }
+                    
+                    }       
+                         
+                    
+                }
+            }
 
+        // run until the end of the match (driver presses STOP)
+        while (opModeIsActive()) {
+                
+            telemetry.update();
+
+            //=(
+            //List<Recognition> updatedRecognitions = tfod.getUpdatedRecognitions();
+             //for (Recognition recognition : updatedRecognitions) {
+                //telemetry.addData("label (%d)", recognition.getLabel());
+             //}
         }
     }
     private void initVuforia() {
@@ -194,7 +233,8 @@ public class PHRED_AUTO extends LinearOpMode {
 
         //  Instantiate the Vuforia engine
         vuforia = ClassFactory.getInstance().createVuforia(parameters);
-
+        
+        telemetry.addData("Vuforia init:","Complete" );
         // Loading trackables is not necessary for the TensorFlow Object Detection engine.
     }
     private void initTfod() {
@@ -204,147 +244,146 @@ public class PHRED_AUTO extends LinearOpMode {
         tfodParameters.minResultConfidence = 0.8f;
         tfod = ClassFactory.getInstance().createTFObjectDetector(tfodParameters, vuforia);
         tfod.loadModelFromAsset(TFOD_MODEL_ASSET, LABEL_FIRST_ELEMENT, LABEL_SECOND_ELEMENT);
+        telemetry.addData("Tfod init:","Complete" );
     }
     public void siteA() {
         //using the front range sensor as reference it drives until it is at target spot
-        while (frontRange.getDistance(DistanceUnit.CM) >= 152 && !isStopRequested()){
+        while (robot.frontRangeSensor.getDistance(DistanceUnit.CM) >= 80 && !isStopRequested()){
             //keeps it no more than 30 cm from wall
-            if (rightRange.getDistance(DistanceUnit.CM) >= 30){
-                frontLeftDrive.setPower(-.5);
-                frontRightDrive.setPower(-.5);
-                backLeftDrive.setPower(.5);
-                backRightDrive.setPower(.5);
+            if (robot.rightRangeSensor.getDistance(DistanceUnit.CM) <= 25){
+                robot.driveLeft(.5);
             }
             else {
-                frontLeftDrive.setPower(1);
-                frontRightDrive.setPower(1);
-                backLeftDrive.setPower(1);
-                backRightDrive.setPower(1);
+                robot.driveForward(.8);
             }
+            telemetry.addLine("Going to A");
+              telemetry.addData("right range: %d", robot.rightRangeSensor.getDistance(DistanceUnit.CM));
+            telemetry.addData("front range: %d", robot.frontRangeSensor.getDistance(DistanceUnit.CM));
+            telemetry.update();
+
         }
         //all three programs differ to turnAndDrop
-        turnAndDrop();
+        turnAndDrop(0, 0.5);
     }
 
     public void siteB() {
-        while (frontRange.getDistance(DistanceUnit.CM) >= 92 && !isStopRequested()){
+        while (robot.frontRangeSensor.getDistance(DistanceUnit.CM) >= 80 && !isStopRequested()){
 
-            if (rightRange.getDistance(DistanceUnit.CM) >= 92){
-                frontLeftDrive.setPower(-.5);
-                frontRightDrive.setPower(-.5);
-                backLeftDrive.setPower(.5);
-                backRightDrive.setPower(.5);
+            if (robot.rightRangeSensor.getDistance(DistanceUnit.CM) <= 25){
+                robot.driveLeft(.5);
             }
             else {
-                frontLeftDrive.setPower(1);
-                frontRightDrive.setPower(1);
-                backLeftDrive.setPower(1);
-                backRightDrive.setPower(1);
+                robot.driveForward(.8);
             }
+            telemetry.addLine("Going to B");
+            telemetry.addData("right range: %d", robot.rightRangeSensor.getDistance(DistanceUnit.CM));
+            telemetry.addData("front range: %d", robot.frontRangeSensor.getDistance(DistanceUnit.CM));
+            telemetry.update();
+
         }
-        turnAndDrop();
+        turnAndDrop(-90, -.5);
     }
 
     public void siteC() {
-        while (frontRange.getDistance(DistanceUnit.CM) >= 31 && !isStopRequested()){
+        while (robot.frontRangeSensor.getDistance(DistanceUnit.CM) >= 80 && !isStopRequested()){
 
-            if (rightRange.getDistance(DistanceUnit.CM) >= 31){
-                frontLeftDrive.setPower(-.5);
-                frontRightDrive.setPower(-.5);
-                backLeftDrive.setPower(.5);
-                backRightDrive.setPower(.5);
+            if (robot.rightRangeSensor.getDistance(DistanceUnit.CM) <= 25){
+                robot.driveLeft(.5);
             }
             else {
-                frontLeftDrive.setPower(1);
-                frontRightDrive.setPower(1);
-                backLeftDrive.setPower(1);
-                backRightDrive.setPower(1);
+                robot.driveForward(.8);
             }
-        }
-        turnAndDrop();
-    }
+            telemetry.addLine("Going to C");
+            telemetry.addData("right range: %d", robot.rightRangeSensor.getDistance(DistanceUnit.CM));
+            telemetry.addData("front range: %d", robot.frontRangeSensor.getDistance(DistanceUnit.CM));
+            telemetry.update();
 
-    public void turnAndDrop(){
-        while (globalAngle <= 90 && !isStopRequested()) {
-            frontLeftDrive.setPower(-.5);
-            frontRightDrive.setPower(.5);
-            backLeftDrive.setPower(-.5);
-            backRightDrive.setPower(.5);
         }
-        tilter.setTargetPosition(TILTER_DOWN);
-        tilter.setPower(.2);
-        tilter.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        while (tilter.isBusy() && !isStopRequested()){}
-        while (globalAngle >= 0 && !isStopRequested()) {
-            frontLeftDrive.setPower(.5);
-            frontRightDrive.setPower(-.5);
-            backLeftDrive.setPower(.5);
-            backRightDrive.setPower(-.5);
+        turnAndDrop(-180, -.5);
+    }
+    
+    public void turnAndDrop(double turnAngle, double turnSpeed) {
+        while (robot.angle() <= (turnAngle - 5) || robot.angle() >= (turnAngle + 5) && !isStopRequested()) {
+            robot.turnLeft(turnSpeed);
+            telemetry.addData("target %f", turnAngle);
+            telemetry.addData("angle %f", robot.angle());
+            telemetry.addData("Turning:", "True");
+            telemetry.update();
         }
-        returnToLine(60,60,true,1);
+        telemetry.addData("Turning:", "done");
+        robot.stopRobot();
+        //
+        robot.liftMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        robot.liftMotor.setTargetPosition(TILTER_DOWN);
+        robot.liftMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        robot.liftMotor.setPower(.5);
+        while (robot.liftMotor.isBusy() && !isStopRequested()){
+            telemetry.addData("angle %f", robot.angle());
+            telemetry.update();
+            sleep (2000);
+            robot.liftMotor.setPower(0);
+        }
+        
+        
+        while (robot.angle() >= 5 || robot.angle() >= -5 && !isStopRequested()) {
+            robot.turnRight(.5);
+            telemetry.addData("Turning:", "True");
+        }
+        robot.stopRobot();
+        //returnToLine(60,60,true,1);
 
     }
     public void returnToLine(double xPOS,double yPOS,boolean firePerm,double fireSpeed){
 
         int turnAmount = 25;
         // moves backwards towards the line
-        while(frontRange.getDistance(DistanceUnit.CM) <= yPOS && !isStopRequested()){
-            frontLeftDrive.setPower(-.5);
-            frontRightDrive.setPower(-.5);
-            backLeftDrive.setPower(-.5);
-            backRightDrive.setPower(.5);
-
+        while(robot.frontRangeSensor.getDistance(DistanceUnit.CM) <= yPOS && !isStopRequested()){
+            robot.driveBackwards(.5);
 
         }
         //moves away from the wall to firing position
-        while(rightRange.getDistance(DistanceUnit.CM) <= xPOS && !isStopRequested()){
-            frontLeftDrive.setPower(.5);
-            frontRightDrive.setPower(.5);
-            backLeftDrive.setPower(-.5);
-            backRightDrive.setPower(-.5);
+        while(robot.rightRangeSensor.getDistance(DistanceUnit.CM) <= xPOS && !isStopRequested()){
+            robot.driveLeft(.5);
         }
         //resets the amount of time the bot spends shooting one disk
         fireTime.reset();
         while (firePerm && fireTime.milliseconds() != FIRE_TIME && !isStopRequested()){
-            frontShooterMotor.setPower(fireSpeed);
-            backShooterMotor.setPower(fireSpeed);
+            robot.frontShooterMotor.setPower(fireSpeed);
+            robot.backShooterMotor.setPower(fireSpeed);
         }
         //reload
-        flipperServo.setPosition(FLIPPER_FORWARD);
+        robot.flipperServo.setPosition(FLIPPER_FORWARD);
         sleep(300);
-        flipperServo.setPosition(FLIPPER_BACK);
+        robot.flipperServo.setPosition(FLIPPER_BACK);
 
 
         //turning
-        while (globalAngle >= turnAmount && !isStopRequested()) {
-            frontLeftDrive.setPower(.5);
-            frontRightDrive.setPower(-.5);
-            backLeftDrive.setPower(.5);
-            backRightDrive.setPower(-.5);
+        while (robot.angle() >= turnAmount && !isStopRequested()) {
+            robot.turnLeft(.2);
         }
         turnAmount = turnAmount + 25;
         //second target
         fireTime.reset();
         while (firePerm && fireTime.milliseconds() != FIRE_TIME && !isStopRequested()){
-            frontShooterMotor.setPower(fireSpeed);
-            backShooterMotor.setPower(fireSpeed);
+            robot.frontShooterMotor.setPower(fireSpeed);
+            robot.backShooterMotor.setPower(fireSpeed);
         }
-        flipperServo.setPosition(FLIPPER_FORWARD);
+        robot.flipperServo.setPosition(FLIPPER_FORWARD);
         sleep(300);
-        flipperServo.setPosition(FLIPPER_BACK);
+        robot.flipperServo.setPosition(FLIPPER_BACK);
 
         //turning
-        while (globalAngle >= turnAmount && !isStopRequested()) {
-            frontLeftDrive.setPower(.5);
-            frontRightDrive.setPower(-.5);
-            backLeftDrive.setPower(.5);
-            backRightDrive.setPower(-.5);
+        while (robot.angle() >= turnAmount && !isStopRequested()) {
+            robot.turnLeft(.2);
         }
         //third target
         fireTime.reset();
         while (firePerm && fireTime.milliseconds() != FIRE_TIME && !isStopRequested()){
-            frontShooterMotor.setPower(fireSpeed);
-            backShooterMotor.setPower(fireSpeed);
+            robot.frontShooterMotor.setPower(fireSpeed);
+            robot.backShooterMotor.setPower(fireSpeed);
         }
+        robot.flipperServo.setPosition(FLIPPER_FORWARD);
+        sleep(300);
+        robot.flipperServo.setPosition(FLIPPER_BACK);
     }
 }

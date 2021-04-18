@@ -126,14 +126,14 @@ public class MainTeleOp extends OpMode {
 
         // Mechanum Mode use Left Stick for motion and Right Stick to rotate
         double drive = gamepad1.left_stick_y;
-        double strafe = -gamepad1.left_stick_x;
-        double turn = -gamepad1.right_stick_x;
+        double strafe = gamepad1.left_stick_x;
+        double turn = gamepad1.right_stick_x;
 
         // - This uses basic math to combine motions and is easier to drive straight.
-        frontLeftPower = Range.clip(drive + turn + strafe, -1.0, 1.0);
-        frontRightPower = Range.clip(-drive + turn + strafe, -1.0, 1.0);
-        backLeftPower = Range.clip(-drive + -turn + strafe, -1.0, 1.0);
-        backRightPower = Range.clip(drive + -turn + strafe, -1.0, 1.0);
+        frontLeftPower = Range.clip(drive - turn - strafe, -1.0, 1.0);
+        frontRightPower = Range.clip(drive + turn + strafe, -1.0, 1.0);
+        backLeftPower = Range.clip(drive - turn + strafe, -1.0, 1.0);
+        backRightPower = Range.clip(drive + turn - strafe, -1.0, 1.0);
 
         // Now Drive the Robot
         robot.driveRobot(frontRightPower, frontLeftPower, backRightPower, backLeftPower);
@@ -148,23 +148,16 @@ public class MainTeleOp extends OpMode {
             robot.gripperServo.setPosition(1);
         }
 
-        // Flipper Servo Open/Close
-        if(gamepad2.a) {
-            robot.flipperServo.setPosition(0);
-        }
         
-        if (gamepad2.b) {
-            robot.flipperServo.setPosition(1);
-        }
-
         // Lifter Arm Routines
         //  DON'T LOCK UP OTHER ACTIONS
         if (gamepad2.dpad_up 
               && !dpad2UpPressed ) {
             // first press of dpad_up so run to position(up)
             robot.liftMotor.setTargetPosition(robot.LIFT_TOP);
-            robot.liftMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
             robot.liftMotor.setPower(robot.LIFT_SPEED_MAX);
+            robot.liftMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            
             
             dpad2UpPressed = true;
         } 
@@ -173,11 +166,16 @@ public class MainTeleOp extends OpMode {
               && !dpad2DownPressed ) {
             // first press of dpad_down so run to position(down)
             robot.liftMotor.setTargetPosition(robot.LIFT_BOTTOM);
+            robot.liftMotor.setPower(-.8);
             robot.liftMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-            robot.liftMotor.setPower(-robot.LIFT_SPEED_MAX);
+        
+            
             
             dpad2DownPressed = true;
         } 
+        if (!gamepad2.dpad_up && robot.liftMotor.getCurrentPosition() < 10 && robot.liftMotor.getCurrentPosition() != 0){
+            robot.liftMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        }
         
         if ((dpad2UpPressed || dpad2DownPressed) // if started lift arm
              && !robot.liftMotor.isBusy()) {     // and now done
@@ -188,8 +186,22 @@ public class MainTeleOp extends OpMode {
         
         // Shooting
         if (gamepad2.right_bumper && !rightBumper2Press) {
-            shootARing();
+            // Turn Motors on
+            robot.shooterOn();
+
+            // set a timer
+            shootCycle.reset();
+            shooting = true;
         }
+        
+            if (gamepad2.right_bumper) {
+                if ( shootCycle.milliseconds() > 500) {
+                   robot.flipperServo.setPosition(1);
+                }
+            } else {
+                robot.flipperServo.setPosition(0);
+            }
+        
         
         // Turn off shooting
         if (shooting && shootCycle.milliseconds() > robot.SHOOTING_MILLISECONDS) {
